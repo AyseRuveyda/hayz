@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --page: #fff7f6;
+  --page-alt: #fdf8f7;
+  --card: #ffffff;
+  --border: rgba(255, 228, 230, 0.7);
+  --primary: #f42566;
+  --primary-deep: #e11d48;
+  --ink: #0f172a;
+  --body: #334155;
+  --muted: #64748b;
+  --green-soft: #f0fdf4;
+  --green-mid: #dcfce7;
+  --blue-soft: #f0f9ff;
+}
+
+.dark {
+  --page: #130f12;
+  --page-alt: #130f12;
+  --card: #1c161b;
+  --border: #2d222a;
+  --primary: #f42566;
+  --primary-deep: #e11d48;
+  --ink: #f8fafc;
+  --body: #e2e8f0;
+  --muted: #94a3b8;
+  --green-soft: #14532d33;
+  --green-mid: #16653444;
+  --blue-soft: #0c4a6e33;
+}
+
+@layer base {
+  * {
+    @apply border-rose-100/70 dark:border-[#2D222A];
+  }
+
+  html {
+    @apply scroll-smooth overflow-x-hidden;
+  }
+
+  body {
+    @apply min-h-screen overflow-x-hidden bg-[var(--page)] text-[var(--body)] antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 10% -10%, #ffe4e6 0%, transparent 55%),
+      radial-gradient(ellipse 60% 40% at 100% 0%, #fdf2f8 0%, transparent 50%);
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(ellipse 70% 40% at 0% 0%, #3f1d2e55 0%, transparent 55%),
+      radial-gradient(ellipse 50% 30% at 100% 0%, #1e103055 0%, transparent 50%);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-[var(--ink)] tracking-tight;
+  }
+}
+
+@layer components {
+  .card-surface {
+    @apply rounded-2xl border border-rose-100/70 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-[#2D222A] dark:bg-[#1C161B];
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-[#F42566] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#E11D48] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F42566]/40 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-rose-100/70 bg-white/80 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-rose-50 dark:border-[#2D222A] dark:bg-[#1C161B] dark:text-slate-200 dark:hover:bg-[#241c23];
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-rose-100/80 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#F42566]/50 focus:ring-2 focus:ring-[#F42566]/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-[#2D222A] dark:bg-[#130F12] dark:text-slate-100 dark:disabled:bg-[#1C161B];
+  }
+
+  .label-field {
+    @apply mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200;
+  }
+
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .safe-bottom {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .bg-stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      #94a3b833,
+      #94a3b833 4px,
+      #f8fafc 4px,
+      #f8fafc 8px
+    );
+  }
+
+  .dark .bg-stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      #94a3b844,
+      #94a3b844 4px,
+      #1c161b 4px,
+      #1c161b 8px
+    );
+  }
+}
