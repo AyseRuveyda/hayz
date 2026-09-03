@@ -4,17 +4,19 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BookOpen, CheckCircle2, HelpCircle, Info, Lightbulb, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { ComparisonRuler } from "@/components/calculator/ComparisonRuler";
 import { ResultCard } from "@/components/calculator/ResultCard";
 import { useChatDrawer } from "@/components/chat/ChatContext";
 import { DateTimeField } from "@/components/ui/DateTimeField";
+import { buildComparisonChart } from "@/lib/comparison-chart";
 import { saveCycle, saveQada } from "@/lib/data-sync";
 import { analyzeSahihAy, calculateFiqhStatus, evaluateCycleWithHabit } from "@/lib/fiqh-engine";
 import { useI18n } from "@/lib/i18n";
 import { getGuestProfile, saveGuestProfile, uid } from "@/lib/local-store";
-import { cn } from "@/lib/utils";
 import {
   dateTimePartsToIso,
   defaultDateTimeParts,
+  splitDateTime,
   type DateTimeParts,
 } from "@/lib/utils";
 import type { CalculationResult, Madhhab } from "@/types/fiqh";
@@ -36,6 +38,33 @@ function defaultStart(): DateTimeParts {
 
 function defaultEnd(): DateTimeParts {
   return defaultDateTimeParts(0, 8, 0);
+}
+
+function defaultPrevHayzStart(): DateTimeParts {
+  return defaultDateTimeParts(29, 8, 0); // ~7 gün hayz + temizlik başlangıcından önce
+}
+
+function hoursBetweenParts(a: DateTimeParts, b: DateTimeParts): number {
+  try {
+    const start = new Date(dateTimePartsToIso(a)).getTime();
+    const end = new Date(dateTimePartsToIso(b)).getTime();
+    return Math.max(0, (end - start) / (1000 * 60 * 60));
+  } catch {
+    return 0;
+  }
+}
+
+function formatDurationHint(hours: number, locale: "tr" | "en"): string {
+  const days = Math.floor(hours / 24);
+  const rem = Math.round(hours % 24);
+  if (locale === "tr") {
+    if (days === 0) return `${rem} saat`;
+    if (rem === 0) return `${days} gün`;
+    return `${days} gün ${rem} saat`;
+  }
+  if (days === 0) return `${rem}h`;
+  if (rem === 0) return `${days}d`;
+  return `${days}d ${rem}h`;
 }
 
 export function CalculatorForm() {
@@ -65,7 +94,15 @@ export function CalculatorForm() {
   const [isContinuousBleeding, setIsContinuousBleeding] = useState(false);
   const [isFirstPeriod, setIsFirstPeriod] = useState(false);
 
-  // Eski âdet — fâsid / 10+ gün Hanefî sonrası accordion
+  // Son sahih ay — DateTime (saat/dakika hassas)
+  const [prevHayzStartParts, setPrevHayzStartParts] =
+    useState<DateTimeParts>(defaultPrevHayzStart);
+  const [prevHayzEndParts, setPrevHayzEndParts] =
+    useState<DateTimeParts>(defaultPurityStart);
+  const [prevTuhurEndParts, setPrevTuhurEndParts] =
+    useState<DateTimeParts>(() => defaultDateTimeParts(14, 8, 0));
+
+  // Eski âdet günleri (DateTime'dan türetilir; motor hâlâ gün/saat kullanır)
   const [habitPurityDays, setHabitPurityDays] = useState(15);
   const [habitHayzDays, setHabitHayzDays] = useState(7);
 
@@ -109,6 +146,35 @@ export function CalculatorForm() {
     }
   }, [hanafiExceedsTenDays]);
 
+  // Son sahih DateTime → habit günleri (saat hassasiyeti)
+  useEffect(() => {
+    if (!(hanafiExceedsTenDays || showHabitAccordion)) return;
+    const hayzH = hoursBetweenParts(prevHayzStartParts, prevHayzEndParts);
+    const tuhurH = hoursBetweenParts(prevHayzEndParts, prevTuhurEndParts);
+    if (hayzH > 0) {
+      setHabitHayzDays(Math.max(1, Math.round((hayzH / 24) * 100) / 100));
+    }
+    if (tuhurH > 0) {
+      setHabitPurityDays(Math.max(1, Math.round((tuhurH / 24) * 100) / 100));
+    }
+  }, [
+    hanafiExceedsTenDays,
+    showHabitAccordion,
+    prevHayzStartParts,
+    prevHayzEndParts,
+    prevTuhurEndParts,
+  ]);
+
+  // Temizlik başlangıcı = önceki hayz bitişi ile senkron (kullanıcı purity değiştirirse)
+  useEffect(() => {
+    setPrevHayzEndParts(purityStartParts);
+  }, [purityStartParts]);
+
+  const computedHayzHours = hoursBetweenParts(prevHayzStartParts, prevHayzEndParts);
+  const computedTuhurHours = hoursBetweenParts(prevHayzEndParts, prevTuhurEndParts);
+  const currentTuhurHours = hoursBetweenParts(purityStartParts, startParts);
+  const bleedingHoursLive = hoursBetweenParts(startParts, endParts);
+
   function madhhabLabel(value: Madhhab) {
     if (value === "HANAFI") return locale === "tr" ? "Hanefi" : "Hanafi";
     if (value === "MALIKI") return "Maliki";
@@ -126,6 +192,9 @@ export function CalculatorForm() {
     setMalikiMaxDays(15);
     setIsContinuousBleeding(false);
     setIsFirstPeriod(false);
+    setPrevHayzStartParts(defaultPrevHayzStart());
+    setPrevHayzEndParts(defaultPurityStart());
+    setPrevTuhurEndParts(defaultDateTimeParts(14, 8, 0));
     setHabitPurityDays(15);
     setHabitHayzDays(7);
     setResult(null);
@@ -273,6 +342,82 @@ export function CalculatorForm() {
   const timeHint =
     locale === "tr" ? "24 saat biçimi (ör. 14:30)" : "24-hour format (e.g. 14:30)";
 
+  const comparisonChart = useMemo(() => {
+    if (!result) return null;
+    const prevStart = (() => {
+      try {
+        return new Date(dateTimePartsToIso(prevHayzStartParts));
+      } catch {
+        return new Date();
+      }
+    })();
+    const purityStart = (() => {
+      try {
+        return new Date(dateTimePartsToIso(purityStartParts));
+      } catch {
+        return new Date();
+      }
+    })();
+    const bleedStart = (() => {
+      try {
+        return new Date(dateTimePartsToIso(startParts));
+      } catch {
+        return new Date();
+      }
+    })();
+
+    const habitHayzH =
+      computedHayzHours > 0 ? computedHayzHours : habitHayzDays * 24;
+    const habitTuhurH =
+      computedTuhurHours > 0 ? computedTuhurHours : habitPurityDays * 24;
+
+    return buildComparisonChart({
+      habitHayzHours: habitHayzH,
+      habitTuhurHours: habitTuhurH,
+      currentTuhurHours: currentTuhurHours,
+      bleedingHours: result.totalHours,
+      daySchedule: result.daySchedule,
+      overlapRule: result.overlapRule ?? null,
+      kazayaKalanGunler:
+        result.kazayaKalanGunler ??
+        Math.ceil(result.istihadhaDays),
+      previousHayzStartDom: prevStart.getDate(),
+      currentTuhurStartDom: purityStart.getDate(),
+      bleedingStartDom: bleedStart.getDate(),
+    });
+  }, [
+    result,
+    prevHayzStartParts,
+    purityStartParts,
+    startParts,
+    computedHayzHours,
+    computedTuhurHours,
+    currentTuhurHours,
+    habitHayzDays,
+    habitPurityDays,
+  ]);
+
+  async function handleChartQada() {
+    if (!result || !comparisonChart) return;
+    const prayers = Math.max(
+      result.qadaPrayersCount,
+      comparisonChart.kazayaKalanGunler * 5
+    );
+    if (prayers <= 0) return;
+    const now = new Date().toISOString();
+    await saveQada({
+      id: uid(),
+      kind: "PRAYER",
+      remaining: prayers,
+      total: prayers,
+      source: "comparison_ruler",
+      noteTR: `Karşılaştırmalı cetvel: ${comparisonChart.kazayaKalanGunler} istihâze günü`,
+      noteEN: `Comparison ruler: ${comparisonChart.kazayaKalanGunler} istihadha days`,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
@@ -372,65 +517,85 @@ export function CalculatorForm() {
             </label>
           </div>
 
-          {/* ── Son Sahih Ay: Hanefî 10+ gün veya fâsid sonuç ── */}
+          {/* ── Son Sahih Ay: Hanefî 10+ gün veya fâsid — DateTime ── */}
           {(hanafiExceedsTenDays || showHabitAccordion) && (
-            <div className="animate-in fade-in slide-in-from-top-2 space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/30">
+            <div className="animate-in fade-in slide-in-from-top-2 space-y-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/30">
               <div className="flex items-start gap-2">
                 <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                 <div>
                   <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
                     {hanafiExceedsTenDays
                       ? locale === "tr"
-                        ? "Kanama 10 günü aşıyor — Rastlama hesabı"
-                        : "Bleeding exceeds 10 days — Overlap calculation"
+                        ? "Kanama 10 günü aşıyor — Son Sahih Ay Verileri"
+                        : "Bleeding exceeds 10 days — Last Valid Month"
                       : locale === "tr"
-                        ? "Döngü Fâsiddir (İstihâze)"
-                        : "Cycle is Irregular (Istihadha)"}
+                        ? "Döngü Fâsiddir — Son Sahih Ay Verileri"
+                        : "Irregular cycle — Last Valid Month"}
                   </p>
                   <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
                     {locale === "tr"
-                      ? "Hanefî’de 10 günü aşan kanamada önceki sahih âdetiniz (hayz + temizlik) zorunludur. Rastlayan (≥3 gün çakışma) veya rastlamayan kaidesi buna göre uygulanır."
-                      : "For Hanafi bleeding beyond 10 days, enter your last valid habit. Overlap (≥3 days) or non-overlap rules will apply."}
+                      ? "Tarih ve saat girin; motor saat farkından gün hesabı yapar. Rastlayan (≥3 gün) / rastlamayan kaidesi buna göre uygulanır."
+                      : "Enter date & time; the engine converts hour differences to days for overlap rules."}
                   </p>
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="label-field" htmlFor="habitHayzDays">
-                    {locale === "tr"
-                      ? "Son Sahih Hayz Süresi (Gün)"
-                      : "Last Valid Hayd (Days)"}
-                  </label>
-                  <input
-                    id="habitHayzDays"
-                    type="number"
-                    min={3}
-                    max={10}
-                    className="input-field"
-                    value={habitHayzDays}
-                    onChange={(e) => {
-                      setHabitHayzDays(Number(e.target.value));
-                    }}
-                    required={hanafiExceedsTenDays}
-                  />
-                </div>
-                <div>
-                  <label className="label-field" htmlFor="habitPurityDays">
-                    {locale === "tr"
-                      ? "Son Sahih Temizlik Süresi (Gün)"
-                      : "Last Valid Purity (Days)"}
-                  </label>
-                  <input
-                    id="habitPurityDays"
-                    type="number"
-                    min={15}
-                    className="input-field"
-                    value={habitPurityDays}
-                    onChange={(e) => {
-                      setHabitPurityDays(Number(e.target.value));
-                    }}
-                    required={hanafiExceedsTenDays}
-                  />
+              <div className="grid gap-4 lg:grid-cols-2">
+                <DateTimeField
+                  idPrefix="prev-hayz-start"
+                  label={
+                    locale === "tr"
+                      ? "Son Sahih Hayz Başlangıcı"
+                      : "Last Valid Hayd Start"
+                  }
+                  value={prevHayzStartParts}
+                  onChange={setPrevHayzStartParts}
+                  timeHint={timeHint}
+                />
+                <DateTimeField
+                  idPrefix="prev-hayz-end"
+                  label={
+                    locale === "tr"
+                      ? "Son Sahih Hayz Bitişi"
+                      : "Last Valid Hayd End"
+                  }
+                  value={prevHayzEndParts}
+                  onChange={(v) => {
+                    setPrevHayzEndParts(v);
+                    setPurityStartParts(v);
+                  }}
+                  timeHint={timeHint}
+                />
+                <DateTimeField
+                  idPrefix="prev-tuhur-end"
+                  label={
+                    locale === "tr"
+                      ? "Son Sahih Temizlik Bitişi"
+                      : "Last Valid Purity End"
+                  }
+                  value={prevTuhurEndParts}
+                  onChange={setPrevTuhurEndParts}
+                  timeHint={timeHint}
+                />
+                <div className="rounded-xl border border-amber-200/80 bg-white/70 p-3 text-xs text-amber-900 dark:border-amber-800/40 dark:bg-[#130F12] dark:text-amber-100">
+                  <p className="font-semibold">
+                    {locale === "tr" ? "Hesaplanan süreler" : "Computed durations"}
+                  </p>
+                  <p className="mt-1">
+                    {locale === "tr" ? "Sahih hayz" : "Valid hayd"}:{" "}
+                    {formatDurationHint(computedHayzHours, locale)}
+                  </p>
+                  <p>
+                    {locale === "tr" ? "Sahih temizlik" : "Valid purity"}:{" "}
+                    {formatDurationHint(computedTuhurHours, locale)}
+                  </p>
+                  <p>
+                    {locale === "tr" ? "Mevcut temizlik" : "Current purity"}:{" "}
+                    {formatDurationHint(currentTuhurHours, locale)}
+                  </p>
+                  <p>
+                    {locale === "tr" ? "Yeni kanama" : "New bleeding"}:{" "}
+                    {formatDurationHint(bleedingHoursLive, locale)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -515,6 +680,14 @@ export function CalculatorForm() {
           )}
 
           <ResultCard result={result} />
+
+          {comparisonChart && (
+            <ComparisonRuler
+              chart={comparisonChart}
+              locale={locale}
+              onAddQada={() => void handleChartQada()}
+            />
+          )}
 
           {showHabitAccordion && isSahih === false && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/30">
