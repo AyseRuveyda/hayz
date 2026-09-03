@@ -186,13 +186,13 @@ export function ComparisonRuler({
                   <line
                     key={`align-${colIdx}`}
                     x1={x}
-                    y1={4}
+                    y1={2}
                     x2={x}
-                    y2="96%"
-                    stroke="#000"
-                    strokeWidth={1.5}
-                    strokeDasharray="4 4"
-                    opacity={0.85}
+                    y2="98%"
+                    stroke="#000000"
+                    strokeWidth={2}
+                    strokeDasharray="5 4"
+                    opacity={1}
                   />
                 );
               })}
