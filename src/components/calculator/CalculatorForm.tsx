@@ -328,13 +328,17 @@ export function CalculatorForm() {
         });
       }
 
-      // Cetveli görünür kıl: React render sonrası kaydır
-      window.setTimeout(() => {
+      // Cetveli görünür kıl: paint sonrası kaydır (sticky header + scroll-margin)
+      const scrollToCetvel = () => {
         const el =
           document.getElementById("cetvel") ||
           document.getElementById("sonuc");
         el?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 120);
+      };
+      window.requestAnimationFrame(() => {
+        window.setTimeout(scrollToCetvel, 80);
+        window.setTimeout(scrollToCetvel, 320);
+      });
     } catch (err) {
       setResult(null);
       setError(err instanceof Error ? err.message : "Hesaplama hatası");
@@ -627,6 +631,22 @@ export function CalculatorForm() {
               ? "Hesapla’ya bastıktan sonra sonuçların en üstünde «Hayz ve İstihâze Karşılaştırmalı Cetveli» görünür."
               : "After Calculate, the Hayd & Istihadha Comparison Ruler appears at the top of the results."}
           </p>
+          {result && comparisonChart && (
+            <a
+              href="#cetvel"
+              className="inline-flex text-sm font-semibold text-[#F42566] underline-offset-2 hover:underline"
+              onClick={(e) => {
+                e.preventDefault();
+                document
+                  .getElementById("cetvel")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            >
+              {locale === "tr"
+                ? "↓ Karşılaştırmalı cetvele git"
+                : "↓ Go to comparison ruler"}
+            </a>
+          )}
         </form>
 
         <aside className="space-y-4">

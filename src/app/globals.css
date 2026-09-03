@@ -114,4 +114,21 @@
       #1c161b 8px
     );
   }
+
+  .cetvel-highlight {
+    outline: 2px solid rgba(244, 37, 102, 0.35);
+    outline-offset: 3px;
+    animation: cetvelPulse 1.4s ease-out 1;
+  }
+
+  @keyframes cetvelPulse {
+    0% {
+      outline-color: rgba(244, 37, 102, 0.7);
+      outline-offset: 6px;
+    }
+    100% {
+      outline-color: rgba(244, 37, 102, 0.25);
+      outline-offset: 3px;
+    }
+  }
 }

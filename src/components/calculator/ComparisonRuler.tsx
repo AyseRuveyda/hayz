@@ -108,7 +108,8 @@ export function ComparisonRuler({
     <section
       id="cetvel"
       className={cn(
-        "overflow-hidden rounded-3xl border border-[#F42566]/20 shadow-sm",
+        // Mobile sticky header (~3rem) — keep title visible after auto-scroll
+        "scroll-mt-16 overflow-hidden rounded-3xl border border-[#F42566]/20 shadow-sm cetvel-highlight lg:scroll-mt-4",
         className
       )}
       style={{ backgroundColor: CHART_COLORS.page }}
