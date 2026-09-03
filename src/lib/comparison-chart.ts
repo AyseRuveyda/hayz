@@ -4,10 +4,8 @@ export type ChartCellKind = "TUHR" | "HAYZ" | "ISTIHADHA" | "EMPTY";
 
 export interface ChartCell {
   kind: ChartCellKind;
-  /** 1-based sütun numarası (görüntü). */
+  /** 1-based süre günü / sütun numarası (takvim günü değil). */
   col: number;
-  /** Ayın günü (1–31), varsa. */
-  dayOfMonth?: number;
   labelTR: string;
   labelEN: string;
 }
@@ -16,7 +14,7 @@ export interface ComparisonChartData {
   columnCount: number;
   topCells: ChartCell[];
   bottomCells: ChartCell[];
-  /** Rastlama / hizalama için siyah kesikli çizgi çizilecek sütun indeksleri (0-based). */
+  /** Rastlama / hizalama için siyah kesikli çizgi (0-based sütun). */
   alignmentColumns: number[];
   topCycleDays: number;
   bottomCycleDays: number;
@@ -29,19 +27,13 @@ export interface ComparisonChartData {
   overlapRule: OverlapRule | null;
 }
 
-function roundDays(hours: number): number {
-  return Math.max(0, Math.round((hours / 24) * 10) / 10);
+/** Saat → kutucuk sayısı: 17g 8s → 18 kutucuk (kısmi gün yukarı yuvarlanır). */
+export function hoursToCellCount(hours: number): number {
+  if (!Number.isFinite(hours) || hours <= 0) return 0;
+  return Math.max(1, Math.ceil(hours / 24 - 1e-9));
 }
 
-function ceilDays(hours: number): number {
-  return Math.max(0, Math.ceil(hours / 24 - 1e-9));
-}
-
-function cell(
-  kind: ChartCellKind,
-  col: number,
-  dayOfMonth?: number
-): ChartCell {
+function cell(kind: ChartCellKind, col: number): ChartCell {
   const labels: Record<ChartCellKind, { tr: string; en: string }> = {
     TUHR: { tr: "Temizlik", en: "Purity" },
     HAYZ: { tr: "Hayz", en: "Hayd" },
@@ -51,25 +43,15 @@ function cell(
   return {
     kind,
     col,
-    dayOfMonth,
     labelTR: labels[kind].tr,
     labelEN: labels[kind].en,
   };
 }
 
-function pushKind(
-  cells: ChartCell[],
-  kind: ChartCellKind,
-  count: number,
-  startDom?: number
-) {
+function pushKind(cells: ChartCell[], kind: ChartCellKind, count: number) {
   const n = Math.max(0, Math.round(count));
   for (let i = 0; i < n; i++) {
-    const dom =
-      typeof startDom === "number"
-        ? ((startDom - 1 + i) % 31) + 1
-        : undefined;
-    cells.push(cell(kind, cells.length + 1, dom));
+    cells.push(cell(kind, cells.length + 1));
   }
 }
 
@@ -88,97 +70,82 @@ export type BuildComparisonInput = {
   currentTuhurHours: number;
   /** Yeni kanama süresi (saat). */
   bleedingHours: number;
-  /** Motorun gün gün çizelgesi (varsa). */
+  /** Motorun gün gün çizelgesi (varsa) — sıra = süre günleri. */
   daySchedule?: DayScheduleEntry[];
   overlapRule?: OverlapRule | null;
   kazayaKalanGunler?: number;
-  /** Önceki hayzın başladığı ay günü (1–31); yoksa 1. */
-  previousHayzStartDom?: number;
-  /** Mevcut temizlik başlangıç ay günü. */
-  currentTuhurStartDom?: number;
-  /** Mevcut kanama başlangıç ay günü. */
-  bleedingStartDom?: number;
 };
 
 /**
- * Üst satır: Son Sahih Ay = [Hayz][Temizlik]
- * Alt satır: Yeni Ay = [Temizlik][Hayz/İstihâze…]
- * Sütun sayısı = max(üst, alt)
- * Kesikli çizgi: üstte HAYZ olan ve altta aynı ay-günü (veya aynı sütunda HAYZ/İSTİHÂZE) olan sütunlar.
+ * Üst: Son Sahih Ay = [Hayz × âdet][Temizlik × âdet]  (süre kutucukları)
+ * Alt: 10 günü aşan ay = [Temizlik × mevcut][Kanama çizelgesi…]
+ *
+ * Takvim ay-günü kullanılmaz. Örn. 17g 8s temizlik → 18 yeşil, 19. kutucuk kan.
+ * Rastlama çizgisi: aynı sütunda üstte hayz + altta kanama (hayz/istihâze).
  */
 export function buildComparisonChart(
   input: BuildComparisonInput
 ): ComparisonChartData {
-  const habitHayzDays = Math.max(1, Math.round(input.habitHayzHours / 24) || 7);
+  const habitHayzDays = Math.max(1, hoursToCellCount(input.habitHayzHours) || 7);
   const habitTuhurDays = Math.max(
     15,
-    Math.round(input.habitTuhurHours / 24) || 15
+    hoursToCellCount(input.habitTuhurHours) || 15
   );
-  const currentTuhurDays = Math.max(0, ceilDays(input.currentTuhurHours));
+  const currentTuhurDays = hoursToCellCount(input.currentTuhurHours);
   const bleedingDayCount =
     input.daySchedule && input.daySchedule.length > 0
       ? input.daySchedule.length
-      : Math.max(1, ceilDays(input.bleedingHours));
+      : Math.max(1, hoursToCellCount(input.bleedingHours));
 
+  // Üst satır — süre sırası: önce âdet hayz, sonra âdet temizlik
   const top: ChartCell[] = [];
-  const prevDom = input.previousHayzStartDom ?? 1;
-  pushKind(top, "HAYZ", habitHayzDays, prevDom);
-  const afterHayzDom = ((prevDom - 1 + habitHayzDays) % 31) + 1;
-  pushKind(top, "TUHR", habitTuhurDays, afterHayzDom);
+  pushKind(top, "HAYZ", habitHayzDays);
+  pushKind(top, "TUHR", habitTuhurDays);
 
+  // Alt satır — süre sırası: önce mevcut temizlik, sonra kanama günleri
   const bottom: ChartCell[] = [];
-  const tuhurDom = input.currentTuhurStartDom ?? 1;
-  pushKind(bottom, "TUHR", currentTuhurDays, tuhurDom);
+  pushKind(bottom, "TUHR", currentTuhurDays);
 
   if (input.daySchedule && input.daySchedule.length > 0) {
     for (const row of input.daySchedule) {
       const kind: ChartCellKind =
         row.kind === "HAYZ" ? "HAYZ" : "ISTIHADHA";
-      const dom = Number(row.date.slice(8, 10));
-      bottom.push(cell(kind, bottom.length + 1, dom));
+      bottom.push(cell(kind, bottom.length + 1));
     }
   } else {
-    // Fallback: tamamı hayz gibi boya (sahih kısa kanama)
-    const bleedDom = input.bleedingStartDom ?? tuhurDom;
-    pushKind(bottom, "HAYZ", bleedingDayCount, bleedDom);
+    pushKind(bottom, "HAYZ", bleedingDayCount);
   }
 
   const columnCount = Math.max(top.length, bottom.length, 1);
   padTo(top, columnCount);
   padTo(bottom, columnCount);
 
-  // Üst hayz ay-günleri
-  const topHayzDom = new Set(
-    top.filter((c) => c.kind === "HAYZ" && c.dayOfMonth).map((c) => c.dayOfMonth!)
-  );
-
+  // Sütun hizası: üstte hayz olan sütunda altta kanama varsa rastlama çizgisi
   const alignmentColumns: number[] = [];
   for (let i = 0; i < columnCount; i++) {
-    const b = bottom[i];
     const t = top[i];
+    const b = bottom[i];
     const bottomBleed = b.kind === "HAYZ" || b.kind === "ISTIHADHA";
-    const sameDom =
-      typeof b.dayOfMonth === "number" && topHayzDom.has(b.dayOfMonth);
-    const stackedHayz = t.kind === "HAYZ" && bottomBleed;
-    if (sameDom || stackedHayz) {
+    if (t.kind === "HAYZ" && bottomBleed) {
       alignmentColumns.push(i);
     }
   }
 
-  // Eğer hiç hizalama yoksa her sütun sınırına ince çizgi için boş bırak — UI her sütun arasına hafif çizgi koyabilir;
-  // kullanıcı siyah kesikli çizgiyi rastlama için istedi → alignmentColumns kullanırız.
-  // Rastlama yoksa yine de her dolu sütuna çizgi (karşılaştırma kolaylığı)
+  // Çizgi yoksa: üst hayz sütunlarına yine de hizalama çiz (karşılaştırma)
   if (alignmentColumns.length === 0) {
     for (let i = 0; i < columnCount; i++) {
-      if (top[i].kind !== "EMPTY" || bottom[i].kind !== "EMPTY") {
-        alignmentColumns.push(i);
-      }
+      if (top[i].kind === "HAYZ") alignmentColumns.push(i);
     }
   }
 
   const hayzDays =
     input.daySchedule?.filter((d) => d.kind === "HAYZ").length ??
-    roundDays(Math.min(input.bleedingHours, input.habitHayzHours || input.bleedingHours));
+    Math.min(
+      bleedingDayCount,
+      hoursToCellCount(
+        Math.min(input.bleedingHours, input.habitHayzHours || input.bleedingHours)
+      )
+    );
   const istihadhaDays =
     input.daySchedule?.filter((d) => d.kind === "ISTIHADHA").length ??
     Math.max(0, bleedingDayCount - Math.round(hayzDays));

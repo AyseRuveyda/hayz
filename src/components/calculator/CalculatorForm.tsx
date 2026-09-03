@@ -355,33 +355,13 @@ export function CalculatorForm() {
 
   const comparisonChart = useMemo(() => {
     if (!result) return null;
-    const prevStart = (() => {
-      try {
-        return new Date(dateTimePartsToIso(prevHayzStartParts));
-      } catch {
-        return new Date();
-      }
-    })();
-    const purityStart = (() => {
-      try {
-        return new Date(dateTimePartsToIso(purityStartParts));
-      } catch {
-        return new Date();
-      }
-    })();
-    const bleedStart = (() => {
-      try {
-        return new Date(dateTimePartsToIso(startParts));
-      } catch {
-        return new Date();
-      }
-    })();
 
     const habitHayzH =
       computedHayzHours > 0 ? computedHayzHours : habitHayzDays * 24;
     const habitTuhurH =
       computedTuhurHours > 0 ? computedTuhurHours : habitPurityDays * 24;
 
+    // Yerleştirme takvim gününe göre değil; temizlik/hayz süre (saat) → kutucuk sayısı
     return buildComparisonChart({
       habitHayzHours: habitHayzH,
       habitTuhurHours: habitTuhurH,
@@ -392,15 +372,9 @@ export function CalculatorForm() {
       kazayaKalanGunler:
         result.kazayaKalanGunler ??
         Math.ceil(result.istihadhaDays),
-      previousHayzStartDom: prevStart.getDate(),
-      currentTuhurStartDom: purityStart.getDate(),
-      bleedingStartDom: bleedStart.getDate(),
     });
   }, [
     result,
-    prevHayzStartParts,
-    purityStartParts,
-    startParts,
     computedHayzHours,
     computedTuhurHours,
     currentTuhurHours,

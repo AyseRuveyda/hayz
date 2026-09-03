@@ -56,11 +56,6 @@ function DayCell({
       <span className="text-[10px] font-bold leading-none sm:text-[11px]">
         {cell.col}
       </span>
-      {cell.dayOfMonth != null && cell.kind !== "EMPTY" && (
-        <span className="mt-0.5 text-[8px] font-medium opacity-90 sm:text-[9px]">
-          {cell.dayOfMonth}
-        </span>
-      )}
     </div>
   );
 }
@@ -128,8 +123,8 @@ export function ComparisonRuler({
         </div>
         <p className="mt-1 text-xs text-stone-500 sm:text-sm">
           {locale === "tr"
-            ? `Üst: Son Sahih Ay (${chart.topCycleDays} gün) · Alt: Yeni Ay (${chart.bottomCycleDays} gün) · Izgara: ${chart.columnCount} sütun`
-            : `Top: Last valid month (${chart.topCycleDays}d) · Bottom: Current (${chart.bottomCycleDays}d) · Grid: ${chart.columnCount} cols`}
+            ? `Üst: Son Sahih Ay (${chart.topCycleDays} gün) · Alt: 10 günü aşan ay (${chart.bottomCycleDays} gün) · Izgara: ${chart.columnCount} sütun`
+            : `Top: Last valid month (${chart.topCycleDays}d) · Bottom: >10-day month (${chart.bottomCycleDays}d) · Grid: ${chart.columnCount} cols`}
           {chart.overlapRule
             ? locale === "tr"
               ? ` · ${chart.overlapRule === "RASTLAYAN" ? "Rastlayan" : "Rastlamayan"} kaidesi`
@@ -209,7 +204,7 @@ export function ComparisonRuler({
               />
               <div className="ml-[72px] border-t border-dashed border-black/40 sm:ml-24" />
               <Row
-                label={locale === "tr" ? "Yeni / Karışık Ay" : "New / Mixed"}
+                label={locale === "tr" ? "10 günü aşan ay" : ">10-day month"}
                 cells={chart.bottomCells}
                 locale={locale}
                 cellSize={cellSize}
