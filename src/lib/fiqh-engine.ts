@@ -3,6 +3,7 @@ import type {
   CalculationResult,
   CalculationStatus,
   Madhhab,
+  MonthAnalysisResult,
 } from "@/types/fiqh";
 
 /** Hanefî asgari hayız: 3 gün (72 saat). */
@@ -697,4 +698,81 @@ export function calculateFiqhStatus(
       throw new Error(`Desteklenmeyen mezhep: ${_exhaustive}`);
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Sahih Ay / Fâsid Ay analizi
+// ---------------------------------------------------------------------------
+
+/**
+ * Bir döngünün "Sahih Ay" sayılıp sayılmayacağını belirler.
+ *
+ * Hanefî : kanama 3–10 gün VE temizlik >= 15 gün → SAHIH
+ * Mâlikî : kanama <= 15 gün  VE temizlik >= 15 gün → SAHIH
+ * Diğer  : yukarıdaki şartlardan biri sağlanmıyorsa → FASID
+ */
+export function analyzeSahihAy(params: {
+  madhhab: Madhhab;
+  bleedingDays: number;
+  purityDays: number;
+  habitHayzDays?: number;
+}): MonthAnalysisResult {
+  const { madhhab, bleedingDays, purityDays, habitHayzDays } = params;
+
+  const isHanafi =
+    madhhab === "HANAFI" || madhhab === "HANAFI_FOLLOWING_MALIKI";
+
+  const monthMadhhab: MonthAnalysisResult["madhhab"] = isHanafi
+    ? "Hanafi"
+    : "Maliki";
+
+  const purityOk = purityDays >= 15;
+  const bleedingHours = bleedingDays * HOURS_PER_DAY;
+  const hanafiMinOk = bleedingHours >= HANAFI_MIN_HAYZ_HOURS; // >= 72 saat
+  const hanafiMaxOk = bleedingHours <= HANAFI_MAX_HAYZ_HOURS; // <= 240 saat
+  const malikiMaxOk = bleedingDays <= MALIKI_DEFAULT_MAX_DAYS;
+
+  const isSahih = purityOk && (isHanafi ? hanafiMinOk && hanafiMaxOk : malikiMaxOk);
+
+  const badgeColor: MonthAnalysisResult["badgeColor"] = isSahih
+    ? "green"
+    : !purityOk
+      ? "amber"
+      : "rose";
+
+  let explanation: string;
+  if (isSahih) {
+    explanation = isHanafi
+      ? `Hanefî sahih ay: kanama ${bleedingDays.toFixed(2)} gün (3–10 arası) ve temizlik ${purityDays} gün (≥15).`
+      : `Mâlikî sahih ay: kanama ${bleedingDays.toFixed(2)} gün (≤15) ve temizlik ${purityDays} gün (≥15).`;
+  } else if (!purityOk) {
+    explanation = `Fâsid ay: temizlik süresi ${purityDays} gün, asgari 15 günün altında.`;
+  } else if (isHanafi && !hanafiMaxOk) {
+    explanation = `Fâsid ay: Hanefî azami sınır aşımı — kanama ${bleedingDays.toFixed(2)} gün > 10 gün.`;
+  } else if (isHanafi && !hanafiMinOk) {
+    explanation = `Fâsid ay: Hanefî asgari altı — kanama ${bleedingDays.toFixed(2)} gün < 3 gün.`;
+  } else {
+    explanation = `Fâsid ay: Mâlikî azami sınır aşımı — kanama ${bleedingDays.toFixed(2)} gün > 15 gün.`;
+  }
+
+  const newHabitHayz =
+    isSahih && typeof habitHayzDays === "number"
+      ? Math.max(1, Math.round(bleedingDays))
+      : undefined;
+  const habitUpdated =
+    typeof newHabitHayz === "number" &&
+    typeof habitHayzDays === "number" &&
+    Math.round(habitHayzDays) !== newHabitHayz;
+
+  return {
+    madhhab: monthMadhhab,
+    bleedingDays,
+    purityDays,
+    cycleStatus: isSahih ? "SAHIH" : "FASID",
+    isSahihMonth: isSahih,
+    habitUpdated,
+    newHabitHayz: habitUpdated ? newHabitHayz : undefined,
+    explanation,
+    badgeColor,
+  };
 }

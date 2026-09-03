@@ -5,6 +5,25 @@ export type Madhhab =
   | "HANAFI_FOLLOWING_MALIKI"
   | "HANBALI";
 
+/** Sahih ay (döngü sıhhati) değerlendirmesinde kullanılan mezhep grubu. */
+export type MonthMadhhab = "Hanafi" | "Maliki";
+
+/** Döngünün sahih / fâsid ay durumu. */
+export type CycleStatus = "SAHIH" | "FASID";
+
+export interface MonthAnalysisResult {
+  madhhab: MonthMadhhab;
+  bleedingDays: number;
+  purityDays: number;
+  cycleStatus: CycleStatus;
+  isSahihMonth: boolean;
+  habitUpdated: boolean;
+  newHabitHayz?: number;
+  newHabitTuhur?: number;
+  explanation: string;
+  badgeColor: "green" | "amber" | "rose";
+}
+
 /** Hesaplama sonucu durumu. */
 export type CalculationStatus =
   | "HAYZ"

@@ -8,7 +8,7 @@ import { ResultCard } from "@/components/calculator/ResultCard";
 import { useChatDrawer } from "@/components/chat/ChatContext";
 import { DateTimeField } from "@/components/ui/DateTimeField";
 import { saveCycle, saveQada } from "@/lib/data-sync";
-import { calculateFiqhStatus } from "@/lib/fiqh-engine";
+import { analyzeSahihAy, calculateFiqhStatus } from "@/lib/fiqh-engine";
 import { useI18n } from "@/lib/i18n";
 import { uid } from "@/lib/local-store";
 import {
@@ -113,6 +113,14 @@ export function CalculatorForm() {
       });
       setResult(next);
 
+      const bleedingDays = next.totalHours / 24;
+      const monthAnalysis = analyzeSahihAy({
+        madhhab,
+        bleedingDays,
+        purityDays: habitPurityDays,
+        habitHayzDays,
+      });
+
       const now = new Date().toISOString();
       const cycleId = uid();
       await saveCycle({
@@ -124,6 +132,11 @@ export function CalculatorForm() {
         hayzDays: next.hayzDays,
         istihadhaDays: next.istihadhaDays,
         purityDays: habitPurityDays,
+        bleedingDays,
+        cycleStatus: monthAnalysis.cycleStatus,
+        isSahihMonth: monthAnalysis.isSahihMonth,
+        sahihMonthBadgeColor: monthAnalysis.badgeColor,
+        sahihMonthExplanation: monthAnalysis.explanation,
         requiresGhusl: next.requiresGhusl,
         qadaPrayersCount: next.qadaPrayersCount,
         nextEarliestHayzDate: next.nextEarliestHayzDate,
