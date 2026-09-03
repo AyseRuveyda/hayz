@@ -8,9 +8,9 @@ import { ResultCard } from "@/components/calculator/ResultCard";
 import { useChatDrawer } from "@/components/chat/ChatContext";
 import { DateTimeField } from "@/components/ui/DateTimeField";
 import { saveCycle, saveQada } from "@/lib/data-sync";
-import { analyzeSahihAy, calculateFiqhStatus } from "@/lib/fiqh-engine";
+import { analyzeSahihAy, calculateFiqhStatus, evaluateCycleWithHabit } from "@/lib/fiqh-engine";
 import { useI18n } from "@/lib/i18n";
-import { uid } from "@/lib/local-store";
+import { getGuestProfile, saveGuestProfile, uid } from "@/lib/local-store";
 import {
   dateTimePartsToIso,
   defaultDateTimeParts,
@@ -62,6 +62,7 @@ export function CalculatorForm() {
   const [habitCycleStartDay, setHabitCycleStartDay] = useState<number | "">("");
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [habitNotice, setHabitNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setMadhhab(initialMadhhab);
@@ -91,11 +92,13 @@ export function CalculatorForm() {
     setHabitCycleStartDay("");
     setResult(null);
     setError(null);
+    setHabitNotice(null);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setHabitNotice(null);
     try {
       const startIso = dateTimePartsToIso(startParts);
       const endIso = dateTimePartsToIso(endParts);
@@ -114,6 +117,53 @@ export function CalculatorForm() {
       setResult(next);
 
       const bleedingDays = next.totalHours / 24;
+
+      // Sahih Ay / Fâsid Ay analizi + habit güncelleme (evaluateCycleWithHabit)
+      const startDate = new Date(startIso);
+      const endDate = new Date(endIso);
+      // Önceki temizliğin bitiş zamanı: startDate'den habitPurityDays önce (yaklaşık)
+      const prevPurityEnd = new Date(
+        startDate.getTime() - habitPurityDays * 24 * 60 * 60 * 1000
+      );
+      const cycleMadhhab: "Hanafi" | "Maliki" =
+        madhhab === "MALIKI" ? "Maliki" : "Hanafi";
+      const profile = getGuestProfile();
+      const lastValidHabit =
+        profile.habitHayzDays > 0 && profile.habitPurityDays > 0
+          ? {
+              hayzHours: profile.habitHayzDays * 24,
+              tuhurHours: profile.habitPurityDays * 24,
+            }
+          : undefined;
+
+      const cycleEval = evaluateCycleWithHabit({
+        bleedingStart: startDate,
+        bleedingEnd: endDate,
+        previousPurityEnd: prevPurityEnd,
+        madhhab: cycleMadhhab,
+        lastValidHabit,
+      });
+
+      // Sahih ay ise profil habit değerlerini güncelle
+      if (cycleEval.cycleStatus === "SAHIH") {
+        const newHayzDays = Math.round(cycleEval.updatedHabit.hayzHours / 24);
+        const newTuhurDays = Math.round(cycleEval.updatedHabit.tuhurHours / 24);
+        saveGuestProfile({
+          ...profile,
+          habitHayzDays: newHayzDays,
+          habitPurityDays: Math.max(15, newTuhurDays),
+          updatedAt: new Date().toISOString(),
+        });
+        setHabitPurityDays(Math.max(15, newTuhurDays));
+        setHabitHayzDays(newHayzDays);
+        setHabitNotice(
+          locale === "tr"
+            ? `Sahih ay tespit edildi. Âdet bilgileriniz güncellendi: Hayız ${newHayzDays} gün, Temizlik ${Math.max(15, newTuhurDays)} gün.`
+            : `Valid month detected. Habit updated: Hayd ${newHayzDays} days, Purity ${Math.max(15, newTuhurDays)} days.`
+        );
+      }
+
+      // analyzeSahihAy — mevcut UI'ya beslenecek gün-bazlı analiz
       const monthAnalysis = analyzeSahihAy({
         madhhab,
         bleedingDays,
@@ -133,10 +183,10 @@ export function CalculatorForm() {
         istihadhaDays: next.istihadhaDays,
         purityDays: habitPurityDays,
         bleedingDays,
-        cycleStatus: monthAnalysis.cycleStatus,
-        isSahihMonth: monthAnalysis.isSahihMonth,
-        sahihMonthBadgeColor: monthAnalysis.badgeColor,
-        sahihMonthExplanation: monthAnalysis.explanation,
+        cycleStatus: cycleEval.cycleStatus,
+        isSahihMonth: cycleEval.cycleStatus === "SAHIH",
+        sahihMonthBadgeColor: cycleEval.badgeColor === "green" ? "green" : cycleEval.cycleStatus === "SAHIH" ? "green" : "amber",
+        sahihMonthExplanation: cycleEval.explanation,
         requiresGhusl: next.requiresGhusl,
         qadaPrayersCount: next.qadaPrayersCount,
         nextEarliestHayzDate: next.nextEarliestHayzDate,
@@ -322,6 +372,13 @@ export function CalculatorForm() {
               {t.calculator.habitCycleStartDayHint}
             </p>
           </div>
+
+          {habitNotice && (
+            <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-200">
+              <span className="mt-0.5 shrink-0 text-base leading-none">✓</span>
+              <span>{habitNotice}</span>
+            </div>
+          )}
 
           {error && (
             <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">

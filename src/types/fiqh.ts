@@ -81,6 +81,37 @@ export interface CalculationResult {
   detailsEN: string[];
 }
 
+// ---------------------------------------------------------------------------
+// Yeni hassas motor arayüzleri (CycleInput / FiqhEngineResult)
+// ---------------------------------------------------------------------------
+
+/** Yeni motor girdisi — Date nesneleri ile dakika hassasiyetinde. */
+export interface CycleInput {
+  bleedingStart: Date;
+  bleedingEnd: Date;
+  /** Bir önceki hayızın bitişi (tuhur süresini hesaplamak için). */
+  previousPurityEnd: Date;
+  madhhab: "Hanafi" | "Maliki";
+  /** Kullanıcının hafızasındaki en son sahih âdet (saat cinsinden). */
+  lastValidHabit?: { hayzHours: number; tuhurHours: number };
+}
+
+/** Yeni motor çıktısı. */
+export interface FiqhEngineResult {
+  cycleStatus: "SAHIH" | "FASID";
+  bleedingDurationHours: number;
+  purityDurationHours: number;
+  /**
+   * Sahih ise → bu döngünün süreleriyle güncellendi.
+   * Fâsid ise → lastValidHabit olduğu gibi korundu.
+   */
+  updatedHabit: { hayzHours: number; tuhurHours: number };
+  /** Sahih: "green" · Fâsid-temizlik: "amber" · Fâsid-azami: "amber" */
+  badgeColor: "green" | "amber";
+  /** Gün + saat cinsinden detaylı Türkçe açıklama. */
+  explanation: string;
+}
+
 /** Bilgi kütüphanesindeki tek bir madde. */
 export interface KnowledgeItem {
   id: string;
