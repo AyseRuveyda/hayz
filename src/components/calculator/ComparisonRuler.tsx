@@ -106,6 +106,7 @@ export function ComparisonRuler({
 
   return (
     <section
+      id="cetvel"
       className={cn(
         "overflow-hidden rounded-3xl border border-[#F42566]/20 shadow-sm",
         className

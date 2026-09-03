@@ -327,6 +327,14 @@ export function CalculatorForm() {
           updatedAt: now,
         });
       }
+
+      // Cetveli görünür kıl: React render sonrası kaydır
+      window.setTimeout(() => {
+        const el =
+          document.getElementById("cetvel") ||
+          document.getElementById("sonuc");
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
     } catch (err) {
       setResult(null);
       setError(err instanceof Error ? err.message : "Hesaplama hatası");
@@ -614,6 +622,11 @@ export function CalculatorForm() {
               {t.calculator.clear}
             </button>
           </div>
+          <p className="text-xs text-stone-500">
+            {locale === "tr"
+              ? "Hesapla’ya bastıktan sonra sonuçların en üstünde «Hayz ve İstihâze Karşılaştırmalı Cetveli» görünür."
+              : "After Calculate, the Hayd & Istihadha Comparison Ruler appears at the top of the results."}
+          </p>
         </form>
 
         <aside className="space-y-4">
@@ -678,8 +691,6 @@ export function CalculatorForm() {
             </div>
           )}
 
-          <ResultCard result={result} />
-
           {comparisonChart && (
             <ComparisonRuler
               chart={comparisonChart}
@@ -687,6 +698,8 @@ export function CalculatorForm() {
               onAddQada={() => void handleChartQada()}
             />
           )}
+
+          <ResultCard result={result} />
 
           {showHabitAccordion && isSahih === false && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/30">
