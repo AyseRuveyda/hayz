@@ -55,6 +55,11 @@ export interface CycleRecord {
   hayzDays: number;
   istihadhaDays: number;
   purityDays?: number;
+  bleedingDays?: number;
+  cycleStatus?: "SAHIH" | "FASID";
+  isSahihMonth?: boolean;
+  sahihMonthBadgeColor?: "green" | "amber" | "rose";
+  sahihMonthExplanation?: string;
   requiresGhusl: boolean;
   qadaPrayersCount: number;
   nextEarliestHayzDate?: string;

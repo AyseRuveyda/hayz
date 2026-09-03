@@ -2,7 +2,10 @@ import type {
   CalculationInput,
   CalculationResult,
   CalculationStatus,
+  CycleInput,
+  FiqhEngineResult,
   Madhhab,
+  MonthAnalysisResult,
 } from "@/types/fiqh";
 
 /** Hanefî asgari hayız: 3 gün (72 saat). */
@@ -697,4 +700,194 @@ export function calculateFiqhStatus(
       throw new Error(`Desteklenmeyen mezhep: ${_exhaustive}`);
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Yardımcı: gün + saat biçiminde süre metni üretir
+// ---------------------------------------------------------------------------
+
+function formatDuration(hours: number): string {
+  const wholeDays = Math.floor(hours / HOURS_PER_DAY);
+  const remainHours = Math.round(hours % HOURS_PER_DAY);
+  if (wholeDays === 0) return `${remainHours} saat`;
+  if (remainHours === 0) return `${wholeDays} gün`;
+  return `${wholeDays} gün ${remainHours} saat`;
+}
+
+// ---------------------------------------------------------------------------
+// Sahih Ay / Fâsid Ay analizi — gün bazlı girdi (CalculatorForm uyumlu)
+// ---------------------------------------------------------------------------
+
+/**
+ * Bir döngünün "Sahih Ay" sayılıp sayılmayacağını belirler.
+ *
+ * Hanefî : kanama 72–240 saat (3–10 gün) VE temizlik >= 360 saat (15 gün) → SAHIH
+ * Mâlikî : kanama > 0 saat ve <= 360 saat (15 gün) VE temizlik >= 360 saat → SAHIH
+ * Diğer  : yukarıdaki şartlardan biri sağlanmıyorsa → FASID
+ *
+ * Açıklama metni gün + saat cinsinden detaylandırılır.
+ */
+export function analyzeSahihAy(params: {
+  madhhab: Madhhab;
+  /** Kanama toplam süresi — gün (float). */
+  bleedingDays: number;
+  /** Önceki temizlik süresi — gün (float veya integer). */
+  purityDays: number;
+  habitHayzDays?: number;
+}): MonthAnalysisResult {
+  const { madhhab, bleedingDays, purityDays, habitHayzDays } = params;
+
+  const isHanafi =
+    madhhab === "HANAFI" || madhhab === "HANAFI_FOLLOWING_MALIKI";
+  const monthMadhhab: MonthAnalysisResult["madhhab"] = isHanafi
+    ? "Hanafi"
+    : "Maliki";
+
+  const bleedingHours = bleedingDays * HOURS_PER_DAY;
+  const purityHours = purityDays * HOURS_PER_DAY;
+
+  // Temizlik şartı: >= 360 saat (15 gün) — her iki mezhep için aynı
+  const purityOk = purityHours >= HANAFI_MIN_TUHR_HOURS;
+
+  // Kanama şartları
+  const hanafiMinOk = bleedingHours >= HANAFI_MIN_HAYZ_HOURS; // >= 72 saat
+  const hanafiMaxOk = bleedingHours <= HANAFI_MAX_HAYZ_HOURS; // <= 240 saat
+  const malikiMinOk = bleedingHours > 0;                       // > 0 (bir damla yeterli)
+  const malikiMaxOk = bleedingHours <= HANAFI_MIN_TUHR_HOURS;  // <= 360 saat (15 gün)
+
+  const isSahih =
+    purityOk &&
+    (isHanafi
+      ? hanafiMinOk && hanafiMaxOk
+      : malikiMinOk && malikiMaxOk);
+
+  const badgeColor: MonthAnalysisResult["badgeColor"] = isSahih
+    ? "green"
+    : !purityOk
+      ? "amber"
+      : "rose";
+
+  // Gün + saat cinsinden formatlanmış süreler
+  const bleedingFmt = formatDuration(bleedingHours);
+  const purityFmt = formatDuration(purityHours);
+
+  let explanation: string;
+  if (isSahih) {
+    explanation = isHanafi
+      ? `Hanefî sahih ay ✓ — Kanamanız ${bleedingFmt} sürmüş (3–10 gün arası) ve temizliğiniz ${purityFmt} olmuştur (≥15 gün). Bu döngü sahih âdet olarak kaydedildi.`
+      : `Mâlikî sahih ay ✓ — Kanamanız ${bleedingFmt} sürmüş (≤15 gün) ve temizliğiniz ${purityFmt} olmuştur (≥15 gün). Bu döngü sahih âdet olarak kaydedildi.`;
+  } else if (!purityOk) {
+    explanation = `Fâsid ay — Temizlik süresi ${purityFmt} olup asgari 15 günün (360 saat) altındadır. Bu döngü istihâze/fâsid sayılır; eski sahih âdetiniz geçerli kalmaya devam eder.`;
+  } else if (isHanafi && !hanafiMinOk) {
+    explanation = `Fâsid ay — Kanamanız ${bleedingFmt} sürmüş olup Hanefî asgari sınırı olan 3 günün (72 saat) altındadır. Tüm kanama istihâze sayılır; eski âdetiniz korunur.`;
+  } else if (isHanafi && !hanafiMaxOk) {
+    explanation = `Fâsid ay — Kanamanız ${bleedingFmt} sürmüş olup Hanefî azami sınırı olan 10 günü (240 saat) aşmıştır. Azami üstü kısım istihâzedir; eski âdetiniz korunur.`;
+  } else if (!malikiMinOk) {
+    explanation = `Fâsid ay — Hiç kanama kaydedilmemiş; bu döngü değerlendirilemez.`;
+  } else {
+    explanation = `Fâsid ay — Kanamanız ${bleedingFmt} sürmüş olup Mâlikî azami sınırı olan 15 günü (360 saat) aşmıştır. Fazla kısım istihâzedir; eski âdetiniz korunur.`;
+  }
+
+  const newHabitHayzRounded =
+    isSahih && typeof habitHayzDays === "number"
+      ? Math.max(1, Math.round(bleedingDays))
+      : undefined;
+  const habitUpdated =
+    typeof newHabitHayzRounded === "number" &&
+    typeof habitHayzDays === "number" &&
+    Math.round(habitHayzDays) !== newHabitHayzRounded;
+
+  return {
+    madhhab: monthMadhhab,
+    bleedingDays,
+    purityDays,
+    cycleStatus: isSahih ? "SAHIH" : "FASID",
+    isSahihMonth: isSahih,
+    habitUpdated,
+    newHabitHayz: habitUpdated ? newHabitHayzRounded : undefined,
+    explanation,
+    badgeColor,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Hassas motor: CycleInput (Date) → FiqhEngineResult
+// Sahih ise habit güncellenir; fâsid ise son geçerli habit korunur.
+// ---------------------------------------------------------------------------
+
+/**
+ * Tam tarihlerle saat+dakika hassasiyetinde döngü sıhhati hesaplar.
+ *
+ * - Sahih ay  → updatedHabit = bu döngünün süreleri
+ * - Fâsid ay  → updatedHabit = lastValidHabit (değişmez); yoksa mevcut süreler saklanır
+ */
+export function evaluateCycleWithHabit(
+  input: CycleInput
+): FiqhEngineResult {
+  const { bleedingStart, bleedingEnd, previousPurityEnd, madhhab, lastValidHabit } =
+    input;
+
+  // Saat bazlı süreler
+  const bleedingDurationHours = Math.max(
+    0,
+    (bleedingEnd.getTime() - bleedingStart.getTime()) / MS_PER_HOUR
+  );
+  const purityDurationHours = Math.max(
+    0,
+    (bleedingStart.getTime() - previousPurityEnd.getTime()) / MS_PER_HOUR
+  );
+
+  const isHanafi = madhhab === "Hanafi";
+
+  // Temizlik şartı: >= 360 saat (15 gün)
+  const purityOk = purityDurationHours >= HANAFI_MIN_TUHR_HOURS;
+
+  // Kanama şartları
+  const hanafiMinOk = bleedingDurationHours >= HANAFI_MIN_HAYZ_HOURS;
+  const hanafiMaxOk = bleedingDurationHours <= HANAFI_MAX_HAYZ_HOURS;
+  const malikiMinOk = bleedingDurationHours > 0;
+  const malikiMaxOk = bleedingDurationHours <= HANAFI_MIN_TUHR_HOURS; // 360 saat = 15 gün
+
+  const isSahih =
+    purityOk &&
+    (isHanafi
+      ? hanafiMinOk && hanafiMaxOk
+      : malikiMinOk && malikiMaxOk);
+
+  // Habit güncellemesi
+  const updatedHabit: FiqhEngineResult["updatedHabit"] =
+    isSahih
+      ? { hayzHours: bleedingDurationHours, tuhurHours: purityDurationHours }
+      : lastValidHabit ?? { hayzHours: bleedingDurationHours, tuhurHours: purityDurationHours };
+
+  const badgeColor: FiqhEngineResult["badgeColor"] = isSahih ? "green" : "amber";
+
+  const bleedingFmt = formatDuration(bleedingDurationHours);
+  const purityFmt = formatDuration(purityDurationHours);
+
+  let explanation: string;
+  if (isSahih) {
+    explanation = isHanafi
+      ? `Hanefî sahih ay ✓ — Kanamanız ${bleedingFmt} sürmüş (3–10 gün arası) ve temizliğiniz ${purityFmt} olmuştur (≥15 gün). Âdetiniz bu döngünün süreleriyle güncellendi.`
+      : `Mâlikî sahih ay ✓ — Kanamanız ${bleedingFmt} sürmüş (≤15 gün) ve temizliğiniz ${purityFmt} olmuştur (≥15 gün). Âdetiniz bu döngünün süreleriyle güncellendi.`;
+  } else if (!purityOk) {
+    explanation = `Fâsid ay — Temizlik süresi ${purityFmt} olup asgari 15 günün altındadır. Önceki sahih âdetiniz (${lastValidHabit ? formatDuration(lastValidHabit.hayzHours) : "—"} hayız) geçerli kalmaya devam eder.`;
+  } else if (isHanafi && !hanafiMinOk) {
+    explanation = `Fâsid ay — Kanamanız ${bleedingFmt} ile Hanefî asgari 3 günün (72 saat) altındadır; tamamı istihâze sayılır. Önceki âdetiniz korunur.`;
+  } else if (isHanafi && !hanafiMaxOk) {
+    explanation = `Fâsid ay — Kanamanız ${bleedingFmt} ile Hanefî azami 10 günü (240 saat) aşmıştır; fazlası istihâzedir. Önceki âdetiniz korunur.`;
+  } else if (!malikiMinOk) {
+    explanation = `Fâsid ay — Hiç kanama kaydedilmemiş.`;
+  } else {
+    explanation = `Fâsid ay — Kanamanız ${bleedingFmt} ile Mâlikî azami 15 günü (360 saat) aşmıştır; fazlası istihâzedir. Önceki âdetiniz korunur.`;
+  }
+
+  return {
+    cycleStatus: isSahih ? "SAHIH" : "FASID",
+    bleedingDurationHours,
+    purityDurationHours,
+    updatedHabit,
+    badgeColor,
+    explanation,
+  };
 }
