@@ -22,7 +22,7 @@ function answerQuestion(q: string, locale: "tr" | "en"): string {
     s.includes("short")
   ) {
     return locale === "tr"
-      ? "Hanefi mezhebinde 72 saatten (3 günden) kısa kanamalar hayız sayılmaz; tamamı istihâze kabul edilir. Gusül farz değildir; o sürede kılınmayan farz namazlar kaza edilir."
+      ? "Hanefi mezhebinde 72 saatten (3 günden) kısa kanamalar hayz sayılmaz; tamamı istihâze kabul edilir. Gusül farz değildir; o sürede kılınmayan farz namazlar kaza edilir."
       : "In the Hanafi school, bleeding shorter than 72 hours (3 days) is not hayd; it is istihadha. Ghusl is not required; missed fard prayers in that period must be made up.";
   }
 
@@ -34,7 +34,7 @@ function answerQuestion(q: string, locale: "tr" | "en"): string {
     s.includes("aş")
   ) {
     return locale === "tr"
-      ? "Hanefi’de hayızın azamisi 10 gündür. Daha uzun süren kanamada alışılmış (sahih) hayız süreniz kadar olan kısım hayız, sonrası istihâze sayılır. Hayız bitiminde gusül farzdır; istihâze günlerinde namaz kılınır."
+      ? "Hanefi’de hayzın azamisi 10 gündür. Daha uzun süren kanamada alışılmış (sahih) hayz süreniz kadar olan kısım hayz, sonrası istihâze sayılır. Hayz bitiminde gusül farzdır; istihâze günlerinde namaz kılınır."
       : "In Hanafi fiqh, hayd lasts at most 10 days. Longer bleeding: your habitual hayd length is hayd, the rest is istihadha. Ghusl is due after hayd; pray during istihadha.";
   }
 
@@ -51,7 +51,7 @@ function answerQuestion(q: string, locale: "tr" | "en"): string {
 
   if (s.includes("gusül") || s.includes("ghusl")) {
     return locale === "tr"
-      ? "Gusül, hayız veya nifasın bitiminde farzdır. Salt istihâze veya 72 saatten kısa kanamada gusül farz olmaz."
+      ? "Gusül, hayz veya nifasın bitiminde farzdır. Salt istihâze veya 72 saatten kısa kanamada gusül farz olmaz."
       : "Ghusl is obligatory when hayd or nifas ends. It is not required for istihadha alone or for bleedings shorter than 72 hours (Hanafi).";
   }
 
@@ -73,7 +73,7 @@ export function FiqhChatDrawer() {
       role: "assistant",
       text:
         locale === "tr"
-          ? "Merhaba. Hayız, istihâze ve ibadetle ilgili kısa sorularınızı yazabilirsiniz."
+          ? "Merhaba. Hayz, istihâze ve ibadetle ilgili kısa sorularınızı yazabilirsiniz."
           : "Hello. You can ask short questions about hayd, istihadha and worship.",
     }),
     [locale]

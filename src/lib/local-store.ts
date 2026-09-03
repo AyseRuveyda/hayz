@@ -155,8 +155,8 @@ export function buildPrediction(
     averagePurityDays: Number(avgPurity.toFixed(2)),
     messageTR:
       daysUntilMinTuhrComplete > 0
-        ? `15 günlük asgari temizlik barajının dolmasına ${daysUntilMinTuhrComplete} gün kaldı. Tahmini yeni hayız: ${daysUntilNextHayz} gün sonra.`
-        : `Asgari temizlik barajı doldu. Tahmini yeni hayız başlangıcı: ${daysUntilNextHayz} gün sonra.`,
+        ? `15 günlük asgari temizlik barajının dolmasına ${daysUntilMinTuhrComplete} gün kaldı. Tahmini yeni hayz: ${daysUntilNextHayz} gün sonra.`
+        : `Asgari temizlik barajı doldu. Tahmini yeni hayz başlangıcı: ${daysUntilNextHayz} gün sonra.`,
     messageEN:
       daysUntilMinTuhrComplete > 0
         ? `${daysUntilMinTuhrComplete} day(s) left until the 15-day minimum purity. Estimated next hayd in ${daysUntilNextHayz} day(s).`

@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Hayz Takvimi",
-  description: "Hayız, nifas ve istihâze hesaplama ve ilmihal platformu",
+  description: "Hayz, nifas ve istihâze hesaplama ve ilmihal platformu",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

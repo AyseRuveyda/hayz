@@ -186,7 +186,7 @@ export function CalculatorForm() {
         setShowHabitAccordion(false);
         setHabitNotice(
           locale === "tr"
-            ? `Âdetiniz güncellendi — Hayız: ${newHayzDays} gün, Temizlik: ${Math.max(15, newTuhurDays)} gün.`
+            ? `Âdetiniz güncellendi — Hayz: ${newHayzDays} gün, Temizlik: ${Math.max(15, newTuhurDays)} gün.`
             : `Habit updated — Hayd: ${newHayzDays} days, Purity: ${Math.max(15, newTuhurDays)} days.`
         );
       } else {
@@ -468,7 +468,7 @@ export function CalculatorForm() {
                 <div>
                   <label className="label-field" htmlFor="habitHayzDays">
                     {locale === "tr"
-                      ? "Son Sahih Hayız Süresi (Gün)"
+                      ? "Son Sahih Hayz Süresi (Gün)"
                       : "Last Valid Hayd (Days)"}
                   </label>
                   <input

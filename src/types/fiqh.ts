@@ -49,9 +49,9 @@ export interface CalculationInput {
   madhhab: Madhhab;
   /** Önceki sahih temizlik (tuhur) günü; asgari 15. */
   habitPurityDays: number;
-  /** Önceki sahih hayız günü; 3–10 arası. */
+  /** Önceki sahih hayz günü; 3–10 arası. */
   habitHayzDays: number;
-  /** Maliki / taklit için azami hayız günü (varsayılan 15). */
+  /** Maliki / taklit için azami hayz günü (varsayılan 15). */
   malikiMaxDays?: number;
   /** Kan kesilmeden sürekli akıyor mu (istimrâr)? */
   isContinuousBleeding?: boolean;
@@ -59,7 +59,7 @@ export interface CalculationInput {
   isFirstPeriod?: boolean;
   /**
    * Rastlayan/rastlamayan hesabı için önceki âdetin başladığı ay günü (1–31).
-   * Verilmezse alışılmış hayız gün sayısı esas alınır.
+   * Verilmezse alışılmış hayz gün sayısı esas alınır.
    */
   habitCycleStartDay?: number;
 }
@@ -89,7 +89,7 @@ export interface CalculationResult {
 export interface CycleInput {
   bleedingStart: Date;
   bleedingEnd: Date;
-  /** Bir önceki hayızın bitişi (tuhur süresini hesaplamak için). */
+  /** Bir önceki hayzın bitişi (tuhur süresini hesaplamak için). */
   previousPurityEnd: Date;
   madhhab: "Hanafi" | "Maliki";
   /** Kullanıcının hafızasındaki en son sahih âdet (saat cinsinden). */

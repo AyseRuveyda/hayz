@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   BookOpenText,
   Calculator,
   CalendarDays,
-  Droplets,
   Languages,
   ListChecks,
   Mail,
@@ -69,14 +68,9 @@ type SidebarProps = {
 export function Sidebar({ onNavigate }: SidebarProps) {
   const { locale, toggleLocale } = useI18n();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const cat = searchParams.get("cat");
 
   const is = (prefix: string) =>
     pathname === prefix || pathname.startsWith(prefix + "/");
-
-  const hayzInfoActive = is("/bilgiler") && cat === "rules";
-  const ilmihalActive = is("/bilgiler") && cat !== "rules";
 
   return (
     <aside className="flex h-full w-[260px] flex-col border-r border-rose-100/70 bg-white/95 dark:border-[#2D222A] dark:bg-[#1C161B]/95">
@@ -130,24 +124,13 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
         <Divider />
 
-        <GroupLabel>{locale === "tr" ? "Kütüphane" : "Library"}</GroupLabel>
         <SideLink
-          href="/bilgiler?cat=rules"
-          active={hayzInfoActive}
-          icon={Droplets}
-          indent
+          href="/bilgiler"
+          active={is("/bilgiler")}
+          icon={BookOpenText}
           onNavigate={onNavigate}
         >
           {locale === "tr" ? "Hayz Bilgileri" : "Hayd Knowledge"}
-        </SideLink>
-        <SideLink
-          href="/bilgiler"
-          active={ilmihalActive}
-          icon={BookOpenText}
-          indent
-          onNavigate={onNavigate}
-        >
-          {locale === "tr" ? "İlmihal Bilgisi" : "Knowledge Base"}
         </SideLink>
 
         <Divider />

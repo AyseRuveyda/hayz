@@ -8,21 +8,21 @@ import type {
   MonthAnalysisResult,
 } from "@/types/fiqh";
 
-/** Hanefî asgari hayız: 3 gün (72 saat). */
+/** Hanefî asgari hayz: 3 gün (72 saat). */
 const HANAFI_MIN_HAYZ_HOURS = 72;
-/** Hanefî azami hayız: 10 gün (240 saat). */
+/** Hanefî azami hayz: 10 gün (240 saat). */
 const HANAFI_MAX_HAYZ_HOURS = 240;
 /** Hanefî asgari temizlik (tuhur): 15 gün. */
 const HANAFI_MIN_TUHR_HOURS = 360;
-/** Hanbelî azami hayız: 15 gün. */
+/** Hanbelî azami hayz: 15 gün. */
 const HANBALI_MAX_HAYZ_HOURS = 360;
-/** Hanbelî asgari hayız: 1 gün. */
+/** Hanbelî asgari hayz: 1 gün. */
 const HANBALI_MIN_HAYZ_HOURS = 24;
 /** Hanbelî asgari temizlik: 13 gün. */
 const HANBALI_MIN_TUHR_HOURS = 312;
-/** Mâlikî varsayılan azami hayız: 15 gün. */
+/** Mâlikî varsayılan azami hayz: 15 gün. */
 const MALIKI_DEFAULT_MAX_DAYS = 15;
-/** İstimrârda ilk kez gören kız: 10 gün hayız. */
+/** İstimrârda ilk kez gören kız: 10 gün hayz. */
 const ISTIMRAR_FIRST_HAYZ_DAYS = 10;
 /** İstimrârda ilk kez gören kız: 20 gün temiz (istihâze). */
 const ISTIMRAR_FIRST_PURITY_DAYS = 20;
@@ -113,7 +113,7 @@ function countCalendarOverlapDays(
 
 /**
  * 10 günü aşan kanamada Hanefî rastlayan/rastlamayan kaidesi.
- * Rastlayan (≥3 gün örtüşme): örtüşen günler hayız.
+ * Rastlayan (≥3 gün örtüşme): örtüşen günler hayz.
  * Rastlamayan: âdet gün sayısı korunur, başlangıç değişir.
  */
 function splitExceedingHanafi(
@@ -145,7 +145,7 @@ function splitExceedingHanafi(
       return {
         hayzHours,
         istihadhaHours: Math.max(0, totalHours - hayzHours),
-        noteTR: `Rastlayan kaidesi uygulandı: ${overlapDays} gün önceki âdet günlerine rastladığı için bu kadar hayız sayıldı.`,
+        noteTR: `Rastlayan kaidesi uygulandı: ${overlapDays} gün önceki âdet günlerine rastladığı için bu kadar hayz sayıldı.`,
         noteEN: `Overlap rule applied: ${overlapDays} days matched the previous habit days and were counted as hayd.`,
       };
     }
@@ -167,9 +167,9 @@ function splitExceedingHanafi(
 }
 
 /**
- * İstimrâr (kesintisiz kan): döngüsel hayız/temizlik bölünmesi.
- * İlk kez gören kız: 10 hayız + 20 istihâze.
- * Âdeti belli: habitHayzDays hayız + habitPurityDays istihâze.
+ * İstimrâr (kesintisiz kan): döngüsel hayz/temizlik bölünmesi.
+ * İlk kez gören kız: 10 hayz + 20 istihâze.
+ * Âdeti belli: habitHayzDays hayz + habitPurityDays istihâze.
  */
 function splitIstimrar(
   input: CalculationInput,
@@ -278,12 +278,12 @@ function buildCopy(params: {
       return {
         titleTR: "Kısa kanama — İstihâze",
         titleEN: "Short bleeding — Istihadha",
-        summaryTR: `${m.tr} mezhebine göre ${totalDays.toFixed(2)} günlük kanama asgari hayız süresinin altındadır; tamamı istihâze sayılır. 72 saatten 5 dakika bile az süren kan hayız olmaz.`,
+        summaryTR: `${m.tr} mezhebine göre ${totalDays.toFixed(2)} günlük kanama asgari hayz süresinin altındadır; tamamı istihâze sayılır. 72 saatten 5 dakika bile az süren kan hayz olmaz.`,
         summaryEN: `According to the ${m.en} school, this ${totalDays.toFixed(2)}-day bleeding is below minimum hayd; all of it is istihadha. Even 5 minutes under 72 hours is not hayd.`,
         detailsTR: [
           "Gusül farz değildir; yalnız abdest alınıp namaz kılınır.",
           `Kılınmayan vakit namazları kaza edilmelidir (tahmini ${qadaPrayersCount} vakit).`,
-          `En erken sonraki hayız tarihi: ${nextTR}.`,
+          `En erken sonraki hayz tarihi: ${nextTR}.`,
           ...extraNotesTR,
         ],
         detailsEN: [
@@ -295,17 +295,17 @@ function buildCopy(params: {
       };
     case "HAYZ":
       return {
-        titleTR: "Hayız",
+        titleTR: "Hayz",
         titleEN: "Hayd",
-        summaryTR: `${m.tr} mezhebine göre kanamanın tamamı (${hayzDays.toFixed(2)} gün) hayızdır.`,
+        summaryTR: `${m.tr} mezhebine göre kanamanın tamamı (${hayzDays.toFixed(2)} gün) hayzdır.`,
         summaryEN: `According to the ${m.en} school, the entire bleeding (${hayzDays.toFixed(2)} days) is hayd.`,
         detailsTR: [
           requiresGhusl
-            ? "Hayız bitiminde gusül farzdır."
+            ? "Hayz bitiminde gusül farzdır."
             : "Gusül gerekmez.",
-          "Hayız süresince namaz farz değildir; oruç tutulmaz, sonra kaza edilir.",
+          "Hayz süresince namaz farz değildir; oruç tutulmaz, sonra kaza edilir.",
           "Mushafa el sürülmez; camiye girilmez; vaty haramdır.",
-          `En erken sonraki hayız tarihi: ${nextTR}.`,
+          `En erken sonraki hayz tarihi: ${nextTR}.`,
           ...extraNotesTR,
         ],
         detailsEN: [
@@ -320,15 +320,15 @@ function buildCopy(params: {
       };
     case "MIXED":
       return {
-        titleTR: "Karma durum — Hayız + İstihâze",
+        titleTR: "Karma durum — Hayz + İstihâze",
         titleEN: "Mixed — Hayd + Istihadha",
-        summaryTR: `${m.tr} mezhebine göre kanama azami sınırı aşmıştır. Hayız: ${hayzDays.toFixed(2)} gün; istihâze: ${istihadhaDays.toFixed(2)} gün.`,
+        summaryTR: `${m.tr} mezhebine göre kanama azami sınırı aşmıştır. Hayz: ${hayzDays.toFixed(2)} gün; istihâze: ${istihadhaDays.toFixed(2)} gün.`,
         summaryEN: `According to the ${m.en} school, bleeding exceeded the maximum. Hayd: ${hayzDays.toFixed(2)} days; istihadha: ${istihadhaDays.toFixed(2)} days.`,
         detailsTR: [
-          "Hayız kısmının bitiminde gusül farzdır.",
+          "Hayz kısmının bitiminde gusül farzdır.",
           `İstihâze günlerinde kılınmayan namazlar kaza edilmelidir (tahmini ${qadaPrayersCount} vakit).`,
           "İstihâze hâlinde abdest alınıp namaz kılınır; oruç tutulur; vaty câizdir.",
-          `En erken sonraki hayız tarihi: ${nextTR}.`,
+          `En erken sonraki hayz tarihi: ${nextTR}.`,
           ...extraNotesTR,
         ],
         detailsEN: [
@@ -348,7 +348,7 @@ function buildCopy(params: {
         detailsTR: [
           requiresGhusl ? "Gusül farzdır." : "Gusül gerekmez.",
           `Kılınmayan vakit namazları kaza edilmelidir (tahmini ${qadaPrayersCount} vakit).`,
-          `En erken sonraki hayız tarihi: ${nextTR}.`,
+          `En erken sonraki hayz tarihi: ${nextTR}.`,
           ...extraNotesTR,
         ],
         detailsEN: [
@@ -431,8 +431,8 @@ function calculateHanafi(
   if (input.isContinuousBleeding) {
     const { hayzHours, istihadhaHours } = splitIstimrar(input, totalHours);
     const noteTR = input.isFirstPeriod
-      ? "İstimrâr: ilk kez kan gören kız — 10 gün hayız, 20 gün istihâze döngüsü."
-      : "İstimrâr: âdeti belli kadın — sahih hayız ve temizlik günleri döngüsü.";
+      ? "İstimrâr: ilk kez kan gören kız — 10 gün hayz, 20 gün istihâze döngüsü."
+      : "İstimrâr: âdeti belli kadın — sahih hayz ve temizlik günleri döngüsü.";
     const noteEN = input.isFirstPeriod
       ? "Istimrar: first period — 10-day hayd / 20-day istihadha cycle."
       : "Istimrar: established habit cycle applied.";
@@ -572,7 +572,7 @@ function calculateMaliki(
       requiresGhusl: true,
       endDate,
       input,
-      extraNotesTR: ["Mâlikî’de asgari sınır yoktur; bu süre hayız kabul edilir."],
+      extraNotesTR: ["Mâlikî’de asgari sınır yoktur; bu süre hayz kabul edilir."],
       extraNotesEN: ["Maliki has no minimum; this duration is hayd."],
     });
   }
@@ -621,7 +621,7 @@ function calculateHanbali(
       requiresGhusl: false,
       endDate,
       input,
-      extraNotesTR: ["Hanbelî’de asgari hayız 1 gündür; daha kısa süre istihâzedir."],
+      extraNotesTR: ["Hanbelî’de asgari hayz 1 gündür; daha kısa süre istihâzedir."],
       extraNotesEN: ["Hanbali minimum hayd is 1 day; shorter bleeding is istihadha."],
     });
   }
@@ -653,7 +653,7 @@ function calculateHanbali(
     requiresGhusl: true,
     endDate,
     input,
-    extraNotesTR: ["Hanbelî’de azami hayız 15 gündür; fazlası istihâzedir."],
+    extraNotesTR: ["Hanbelî’de azami hayz 15 gündür; fazlası istihâzedir."],
     extraNotesEN: ["Hanbali maximum hayd is 15 days; the rest is istihadha."],
   });
 }
@@ -871,7 +871,7 @@ export function evaluateCycleWithHabit(
       ? `Hanefî sahih ay ✓ — Kanamanız ${bleedingFmt} sürmüş (3–10 gün arası) ve temizliğiniz ${purityFmt} olmuştur (≥15 gün). Âdetiniz bu döngünün süreleriyle güncellendi.`
       : `Mâlikî sahih ay ✓ — Kanamanız ${bleedingFmt} sürmüş (≤15 gün) ve temizliğiniz ${purityFmt} olmuştur (≥15 gün). Âdetiniz bu döngünün süreleriyle güncellendi.`;
   } else if (!purityOk) {
-    explanation = `Fâsid ay — Temizlik süresi ${purityFmt} olup asgari 15 günün altındadır. Önceki sahih âdetiniz (${lastValidHabit ? formatDuration(lastValidHabit.hayzHours) : "—"} hayız) geçerli kalmaya devam eder.`;
+    explanation = `Fâsid ay — Temizlik süresi ${purityFmt} olup asgari 15 günün altındadır. Önceki sahih âdetiniz (${lastValidHabit ? formatDuration(lastValidHabit.hayzHours) : "—"} hayz) geçerli kalmaya devam eder.`;
   } else if (isHanafi && !hanafiMinOk) {
     explanation = `Fâsid ay — Kanamanız ${bleedingFmt} ile Hanefî asgari 3 günün (72 saat) altındadır; tamamı istihâze sayılır. Önceki âdetiniz korunur.`;
   } else if (isHanafi && !hanafiMaxOk) {
