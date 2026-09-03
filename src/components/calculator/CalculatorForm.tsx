@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { BookOpen, HelpCircle, Info, Lightbulb } from "lucide-react";
+import { BookOpen, CheckCircle2, HelpCircle, Info, Lightbulb, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ResultCard } from "@/components/calculator/ResultCard";
 import { useChatDrawer } from "@/components/chat/ChatContext";
@@ -11,6 +11,7 @@ import { saveCycle, saveQada } from "@/lib/data-sync";
 import { analyzeSahihAy, calculateFiqhStatus, evaluateCycleWithHabit } from "@/lib/fiqh-engine";
 import { useI18n } from "@/lib/i18n";
 import { getGuestProfile, saveGuestProfile, uid } from "@/lib/local-store";
+import { cn } from "@/lib/utils";
 import {
   dateTimePartsToIso,
   defaultDateTimeParts,
@@ -24,6 +25,10 @@ const MADHHABS: Madhhab[] = [
   "HANAFI_FOLLOWING_MALIKI",
   "HANBALI",
 ];
+
+function defaultPurityStart(): DateTimeParts {
+  return defaultDateTimeParts(22, 8, 0); // ~22 gün önce (15+ gün temizlik)
+}
 
 function defaultStart(): DateTimeParts {
   return defaultDateTimeParts(7, 8, 0);
@@ -46,28 +51,37 @@ export function CalculatorForm() {
       q === "HANAFI_FOLLOWING_MALIKI" ||
       q === "HANBALI"
     ) {
-      return q;
+      return q as Madhhab;
     }
     return "HANAFI" as Madhhab;
   }, [searchParams]);
 
+  // Form state
+  const [purityStartParts, setPurityStartParts] = useState<DateTimeParts>(defaultPurityStart);
   const [startParts, setStartParts] = useState<DateTimeParts>(defaultStart);
   const [endParts, setEndParts] = useState<DateTimeParts>(defaultEnd);
   const [madhhab, setMadhhab] = useState<Madhhab>(initialMadhhab);
   const [malikiMaxDays, setMalikiMaxDays] = useState(15);
-  const [habitPurityDays, setHabitPurityDays] = useState(15);
-  const [habitHayzDays, setHabitHayzDays] = useState(7);
   const [isContinuousBleeding, setIsContinuousBleeding] = useState(false);
   const [isFirstPeriod, setIsFirstPeriod] = useState(false);
-  const [habitCycleStartDay, setHabitCycleStartDay] = useState<number | "">("");
+
+  // Eski âdet — fâsid ay sonrası accordion
+  const [habitPurityDays, setHabitPurityDays] = useState(15);
+  const [habitHayzDays, setHabitHayzDays] = useState(7);
+
+  // Sonuç state
   const [result, setResult] = useState<CalculationResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [isSahih, setIsSahih] = useState<boolean | null>(null);
+  const [cycleExplanation, setCycleExplanation] = useState<string>("");
   const [habitNotice, setHabitNotice] = useState<string | null>(null);
+  const [showHabitAccordion, setShowHabitAccordion] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setMadhhab(initialMadhhab);
   }, [initialMadhhab]);
 
+  // Mâlikî için max kontrolü sadece Maliki/taklidinde aktif
   const malikiControlsEnabled =
     madhhab === "MALIKI" || madhhab === "HANAFI_FOLLOWING_MALIKI";
 
@@ -81,27 +95,33 @@ export function CalculatorForm() {
   }
 
   function handleClear() {
+    setPurityStartParts(defaultPurityStart());
     setStartParts(defaultStart());
     setEndParts(defaultEnd());
     setMadhhab("HANAFI");
     setMalikiMaxDays(15);
-    setHabitPurityDays(15);
-    setHabitHayzDays(7);
     setIsContinuousBleeding(false);
     setIsFirstPeriod(false);
-    setHabitCycleStartDay("");
+    setHabitPurityDays(15);
+    setHabitHayzDays(7);
     setResult(null);
-    setError(null);
+    setIsSahih(null);
+    setCycleExplanation("");
     setHabitNotice(null);
+    setShowHabitAccordion(false);
+    setError(null);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setHabitNotice(null);
+
     try {
+      const purityStartIso = dateTimePartsToIso(purityStartParts);
       const startIso = dateTimePartsToIso(startParts);
       const endIso = dateTimePartsToIso(endParts);
+
       const next = calculateFiqhStatus({
         startDate: startIso,
         endDate: endIso,
@@ -111,41 +131,41 @@ export function CalculatorForm() {
         malikiMaxDays: malikiControlsEnabled ? malikiMaxDays : undefined,
         isContinuousBleeding,
         isFirstPeriod: isFirstPeriod || undefined,
-        habitCycleStartDay:
-          habitCycleStartDay !== "" ? Number(habitCycleStartDay) : undefined,
       });
       setResult(next);
 
-      const bleedingDays = next.totalHours / 24;
-
-      // Sahih Ay / Fâsid Ay analizi + habit güncelleme (evaluateCycleWithHabit)
-      const startDate = new Date(startIso);
-      const endDate = new Date(endIso);
-      // Önceki temizliğin bitiş zamanı: startDate'den habitPurityDays önce (yaklaşık)
-      const prevPurityEnd = new Date(
-        startDate.getTime() - habitPurityDays * 24 * 60 * 60 * 1000
+      // Temizlik süresi: temizlik başlangıcından kanama başlangıcına kadar
+      const purityStartDate = new Date(purityStartIso);
+      const bleedingStartDate = new Date(startIso);
+      const bleedingEndDate = new Date(endIso);
+      const purityHours = Math.max(
+        0,
+        (bleedingStartDate.getTime() - purityStartDate.getTime()) / (1000 * 60 * 60)
       );
-      const cycleMadhhab: "Hanafi" | "Maliki" =
-        madhhab === "MALIKI" ? "Maliki" : "Hanafi";
+      const purityDaysExact = purityHours / 24;
+
+      // evaluateCycleWithHabit — hassas Date bazlı analiz
+      const cycleMadhhab: "Hanafi" | "Maliki" = madhhab === "MALIKI" ? "Maliki" : "Hanafi";
       const profile = getGuestProfile();
       const lastValidHabit =
         profile.habitHayzDays > 0 && profile.habitPurityDays > 0
-          ? {
-              hayzHours: profile.habitHayzDays * 24,
-              tuhurHours: profile.habitPurityDays * 24,
-            }
+          ? { hayzHours: profile.habitHayzDays * 24, tuhurHours: profile.habitPurityDays * 24 }
           : undefined;
 
       const cycleEval = evaluateCycleWithHabit({
-        bleedingStart: startDate,
-        bleedingEnd: endDate,
-        previousPurityEnd: prevPurityEnd,
+        bleedingStart: bleedingStartDate,
+        bleedingEnd: bleedingEndDate,
+        previousPurityEnd: purityStartDate,
         madhhab: cycleMadhhab,
         lastValidHabit,
       });
 
-      // Sahih ay ise profil habit değerlerini güncelle
-      if (cycleEval.cycleStatus === "SAHIH") {
+      const sahih = cycleEval.cycleStatus === "SAHIH";
+      setIsSahih(sahih);
+      setCycleExplanation(cycleEval.explanation);
+
+      if (sahih) {
+        // Sahih: profili güncelle, accordion kapat
         const newHayzDays = Math.round(cycleEval.updatedHabit.hayzHours / 24);
         const newTuhurDays = Math.round(cycleEval.updatedHabit.tuhurHours / 24);
         saveGuestProfile({
@@ -154,20 +174,25 @@ export function CalculatorForm() {
           habitPurityDays: Math.max(15, newTuhurDays),
           updatedAt: new Date().toISOString(),
         });
-        setHabitPurityDays(Math.max(15, newTuhurDays));
         setHabitHayzDays(newHayzDays);
+        setHabitPurityDays(Math.max(15, newTuhurDays));
+        setShowHabitAccordion(false);
         setHabitNotice(
           locale === "tr"
-            ? `Sahih ay tespit edildi. Âdet bilgileriniz güncellendi: Hayız ${newHayzDays} gün, Temizlik ${Math.max(15, newTuhurDays)} gün.`
-            : `Valid month detected. Habit updated: Hayd ${newHayzDays} days, Purity ${Math.max(15, newTuhurDays)} days.`
+            ? `Âdetiniz güncellendi — Hayız: ${newHayzDays} gün, Temizlik: ${Math.max(15, newTuhurDays)} gün.`
+            : `Habit updated — Hayd: ${newHayzDays} days, Purity: ${Math.max(15, newTuhurDays)} days.`
         );
+      } else {
+        // Fâsid: accordion'u aç
+        setShowHabitAccordion(true);
       }
 
-      // analyzeSahihAy — mevcut UI'ya beslenecek gün-bazlı analiz
+      // analyzeSahihAy — döngü kaydına yazılacak badge/açıklama
+      const bleedingDays = next.totalHours / 24;
       const monthAnalysis = analyzeSahihAy({
         madhhab,
         bleedingDays,
-        purityDays: habitPurityDays,
+        purityDays: purityDaysExact,
         habitHayzDays,
       });
 
@@ -181,11 +206,11 @@ export function CalculatorForm() {
         status: next.status,
         hayzDays: next.hayzDays,
         istihadhaDays: next.istihadhaDays,
-        purityDays: habitPurityDays,
+        purityDays: Math.round(purityDaysExact),
         bleedingDays,
         cycleStatus: cycleEval.cycleStatus,
-        isSahihMonth: cycleEval.cycleStatus === "SAHIH",
-        sahihMonthBadgeColor: cycleEval.badgeColor === "green" ? "green" : cycleEval.cycleStatus === "SAHIH" ? "green" : "amber",
+        isSahihMonth: sahih,
+        sahihMonthBadgeColor: sahih ? "green" : "amber",
         sahihMonthExplanation: cycleEval.explanation,
         requiresGhusl: next.requiresGhusl,
         qadaPrayersCount: next.qadaPrayersCount,
@@ -217,6 +242,9 @@ export function CalculatorForm() {
     }
   }
 
+  const timeHint =
+    locale === "tr" ? "24 saat biçimi (ör. 14:30)" : "24-hour format (e.g. 14:30)";
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
@@ -230,31 +258,32 @@ export function CalculatorForm() {
             </p>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          {/* ── Tarih alanları: Temizlik Başlangıcı + Kanama Başlangıcı + Kanama Bitişi ── */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <DateTimeField
+              idPrefix="purity-start"
+              label={locale === "tr" ? "Temizlik Başlangıcı" : "Purity Start"}
+              value={purityStartParts}
+              onChange={setPurityStartParts}
+              timeHint={timeHint}
+            />
             <DateTimeField
               idPrefix="start"
               label={t.calculator.startDate}
               value={startParts}
               onChange={setStartParts}
-              timeHint={
-                locale === "tr"
-                  ? "24 saat biçimi (ör. 14:30)"
-                  : "24-hour format (e.g. 14:30)"
-              }
+              timeHint={timeHint}
             />
             <DateTimeField
               idPrefix="end"
               label={t.calculator.endDate}
               value={endParts}
               onChange={setEndParts}
-              timeHint={
-                locale === "tr"
-                  ? "24 saat biçimi (ör. 14:30)"
-                  : "24-hour format (e.g. 14:30)"
-              }
+              timeHint={timeHint}
             />
           </div>
 
+          {/* ── Mezhep + Mâlikî max (sadece Maliki seçiliyse) ── */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="label-field" htmlFor="madhhab">
@@ -273,62 +302,27 @@ export function CalculatorForm() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="label-field" htmlFor="malikiMaxDays">
-                {t.calculator.maxHayzDays}
-              </label>
-              <input
-                id="malikiMaxDays"
-                type="number"
-                min={1}
-                max={30}
-                className="input-field"
-                value={malikiMaxDays}
-                disabled={!malikiControlsEnabled}
-                onChange={(e) => setMalikiMaxDays(Number(e.target.value))}
-              />
-              <p className="mt-1 text-xs text-slate-400">
-                {malikiControlsEnabled
-                  ? t.calculator.maxHayzHint
-                  : t.calculator.maxHayzDisabled}
-              </p>
-            </div>
-          </div>
 
-          <div className="rounded-2xl border border-rose-100/70 bg-[#FDF8F7] p-4 dark:border-[#2D222A] dark:bg-[#130F12]">
-            <p className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
-              {t.calculator.habitSection}
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
+            {malikiControlsEnabled && (
               <div>
-                <label className="label-field" htmlFor="habitPurityDays">
-                  {t.calculator.habitPurity}
+                <label className="label-field" htmlFor="malikiMaxDays">
+                  {t.calculator.maxHayzDays}
                 </label>
                 <input
-                  id="habitPurityDays"
+                  id="malikiMaxDays"
                   type="number"
                   min={1}
+                  max={30}
                   className="input-field"
-                  value={habitPurityDays}
-                  onChange={(e) => setHabitPurityDays(Number(e.target.value))}
+                  value={malikiMaxDays}
+                  onChange={(e) => setMalikiMaxDays(Number(e.target.value))}
                 />
+                <p className="mt-1 text-xs text-slate-400">{t.calculator.maxHayzHint}</p>
               </div>
-              <div>
-                <label className="label-field" htmlFor="habitHayzDays">
-                  {t.calculator.habitHayz}
-                </label>
-                <input
-                  id="habitHayzDays"
-                  type="number"
-                  min={1}
-                  className="input-field"
-                  value={habitHayzDays}
-                  onChange={(e) => setHabitHayzDays(Number(e.target.value))}
-                />
-              </div>
-            </div>
+            )}
           </div>
 
+          {/* ── İstimrâr / İlk period checkbox ── */}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-rose-100/70 bg-white px-3 py-2.5 text-sm dark:border-[#2D222A] dark:bg-[#130F12]">
               <input
@@ -350,32 +344,77 @@ export function CalculatorForm() {
             </label>
           </div>
 
-          <div>
-            <label className="label-field" htmlFor="habitCycleStartDay">
-              {t.calculator.habitCycleStartDay}
-            </label>
-            <input
-              id="habitCycleStartDay"
-              type="number"
-              min={1}
-              max={31}
-              className="input-field"
-              value={habitCycleStartDay}
-              placeholder="—"
-              onChange={(e) =>
-                setHabitCycleStartDay(
-                  e.target.value === "" ? "" : Number(e.target.value)
-                )
-              }
-            />
-            <p className="mt-1 text-xs text-slate-400">
-              {t.calculator.habitCycleStartDayHint}
-            </p>
-          </div>
+          {/* ── Fâsid ay accordion: Eski sahih âdet verileri ── */}
+          {showHabitAccordion && (
+            <div
+              className={cn(
+                "animate-in fade-in slide-in-from-top-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/30"
+              )}
+            >
+              <div className="mb-3 flex items-start gap-2">
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                    {locale === "tr"
+                      ? "Döngü Fâsiddir (İstihâze)"
+                      : "Cycle is Irregular (Istihadha)"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
+                    {locale === "tr"
+                      ? "İstihâze hükümleri için en son geçerli sahih âdetinizi giriniz. Bu bilgiler hayız / istihâze sınırını belirler."
+                      : "Enter your last valid habitual cycle for istihadha rulings."}
+                  </p>
+                  {cycleExplanation && (
+                    <p className="mt-1 text-xs italic text-amber-600 dark:text-amber-400">
+                      {cycleExplanation}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="label-field" htmlFor="habitPurityDays">
+                    {locale === "tr"
+                      ? "Son Sahih Temizlik Süresi (Gün)"
+                      : "Last Valid Purity (Days)"}
+                  </label>
+                  <input
+                    id="habitPurityDays"
+                    type="number"
+                    min={15}
+                    className="input-field"
+                    value={habitPurityDays}
+                    onChange={(e) => setHabitPurityDays(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label className="label-field" htmlFor="habitHayzDays">
+                    {locale === "tr"
+                      ? "Son Sahih Hayız Süresi (Gün)"
+                      : "Last Valid Hayd (Days)"}
+                  </label>
+                  <input
+                    id="habitHayzDays"
+                    type="number"
+                    min={1}
+                    className="input-field"
+                    value={habitHayzDays}
+                    onChange={(e) => setHabitHayzDays(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                {locale === "tr"
+                  ? "Bu verileri girdikten sonra tekrar HESAPLA'ya basın."
+                  : "After entering these, press CALCULATE again."}
+              </p>
+            </div>
+          )}
 
+          {/* ── Sahih ay bildirimi ── */}
           {habitNotice && (
             <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-200">
-              <span className="mt-0.5 shrink-0 text-base leading-none">✓</span>
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span>{habitNotice}</span>
             </div>
           )}
@@ -435,8 +474,56 @@ export function CalculatorForm() {
         </aside>
       </div>
 
+      {/* ── Sonuç kartı ── */}
       {result && (
-        <div id="sonuc">
+        <div id="sonuc" className="space-y-3">
+          {/* Sahih/Fâsid rozeti */}
+          {isSahih !== null && (
+            <div
+              className={cn(
+                "flex items-start gap-3 rounded-2xl border p-4",
+                isSahih
+                  ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800/40 dark:bg-emerald-950/30"
+                  : "border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/30"
+              )}
+            >
+              {isSahih ? (
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+              )}
+              <div>
+                <p
+                  className={cn(
+                    "text-sm font-semibold",
+                    isSahih
+                      ? "text-emerald-800 dark:text-emerald-200"
+                      : "text-amber-800 dark:text-amber-200"
+                  )}
+                >
+                  {isSahih
+                    ? locale === "tr"
+                      ? "Döngünüz Sahihtir ✓"
+                      : "Your cycle is valid ✓"
+                    : locale === "tr"
+                      ? "Döngü Fâsiddir (İstihâze)"
+                      : "Cycle is Irregular (Istihadha)"}
+                </p>
+                {cycleExplanation && (
+                  <p
+                    className={cn(
+                      "mt-0.5 text-xs",
+                      isSahih
+                        ? "text-emerald-700 dark:text-emerald-300"
+                        : "text-amber-700 dark:text-amber-300"
+                    )}
+                  >
+                    {cycleExplanation}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
           <ResultCard result={result} />
         </div>
       )}
@@ -456,7 +543,7 @@ export function CalculatorForm() {
           </>
         ) : (
           <>
-            Your history is available on the{" "}
+            Your history is on the{" "}
             <Link href="/takvim" className="font-medium text-[#E11D48] underline">
               Calendar
             </Link>{" "}
