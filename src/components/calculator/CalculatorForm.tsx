@@ -98,8 +98,9 @@ export function CalculatorForm() {
     useState<DateTimeParts>(defaultPrevHayzStart);
   const [prevHayzEndParts, setPrevHayzEndParts] =
     useState<DateTimeParts>(defaultPurityStart);
-  const [prevTuhurEndParts, setPrevTuhurEndParts] =
-    useState<DateTimeParts>(() => defaultDateTimeParts(14, 8, 0));
+  /** Son sahih ay temizlik başlangıcı (bitiş değil — bitiş = kanama başlangıcı). */
+  const [prevTuhurStartParts, setPrevTuhurStartParts] =
+    useState<DateTimeParts>(defaultPurityStart);
 
   // Eski âdet günleri (DateTime'dan türetilir; motor hâlâ gün/saat kullanır)
   const [habitPurityDays, setHabitPurityDays] = useState(15);
@@ -149,7 +150,8 @@ export function CalculatorForm() {
   useEffect(() => {
     if (!(hanafiExceedsTenDays || showHabitAccordion)) return;
     const hayzH = hoursBetweenParts(prevHayzStartParts, prevHayzEndParts);
-    const tuhurH = hoursBetweenParts(prevHayzEndParts, prevTuhurEndParts);
+    // Sahih temizlik: temizlik başlangıcı → kanama başlangıcı (bitiş ayrıca sorulmaz)
+    const tuhurH = hoursBetweenParts(prevTuhurStartParts, startParts);
     if (hayzH > 0) {
       setHabitHayzDays(Math.max(1, Math.round((hayzH / 24) * 100) / 100));
     }
@@ -161,16 +163,18 @@ export function CalculatorForm() {
     showHabitAccordion,
     prevHayzStartParts,
     prevHayzEndParts,
-    prevTuhurEndParts,
+    prevTuhurStartParts,
+    startParts,
   ]);
 
-  // Temizlik başlangıcı = önceki hayz bitişi ile senkron (kullanıcı purity değiştirirse)
+  // Ana temizlik başlangıcı ↔ son sahih hayz bitişi / temizlik başlangıcı
   useEffect(() => {
     setPrevHayzEndParts(purityStartParts);
+    setPrevTuhurStartParts(purityStartParts);
   }, [purityStartParts]);
 
   const computedHayzHours = hoursBetweenParts(prevHayzStartParts, prevHayzEndParts);
-  const computedTuhurHours = hoursBetweenParts(prevHayzEndParts, prevTuhurEndParts);
+  const computedTuhurHours = hoursBetweenParts(prevTuhurStartParts, startParts);
   const currentTuhurHours = hoursBetweenParts(purityStartParts, startParts);
   const bleedingHoursLive = hoursBetweenParts(startParts, endParts);
 
@@ -193,7 +197,7 @@ export function CalculatorForm() {
     setIsFirstPeriod(false);
     setPrevHayzStartParts(defaultPrevHayzStart());
     setPrevHayzEndParts(defaultPurityStart());
-    setPrevTuhurEndParts(defaultDateTimeParts(14, 8, 0));
+    setPrevTuhurStartParts(defaultPurityStart());
     setHabitPurityDays(15);
     setHabitHayzDays(7);
     setResult(null);
@@ -519,8 +523,8 @@ export function CalculatorForm() {
                   </p>
                   <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
                     {locale === "tr"
-                      ? "Tarih ve saat girin; motor saat farkından gün hesabı yapar. Rastlayan (≥3 gün) / rastlamayan kaidesi buna göre uygulanır."
-                      : "Enter date & time; the engine converts hour differences to days for overlap rules."}
+                      ? "Son sahih hayz ile temizlik başlangıcını girin. Temizlik süresi, temizlik başlangıcından kanama başlangıcına kadar hesaplanır (ayrı bitiş sorulmaz)."
+                      : "Enter last valid hayd and purity start. Purity length runs from purity start to bleeding start (no separate end field)."}
                   </p>
                 </div>
               </div>
@@ -546,19 +550,24 @@ export function CalculatorForm() {
                   value={prevHayzEndParts}
                   onChange={(v) => {
                     setPrevHayzEndParts(v);
+                    setPrevTuhurStartParts(v);
                     setPurityStartParts(v);
                   }}
                   timeHint={timeHint}
                 />
                 <DateTimeField
-                  idPrefix="prev-tuhur-end"
+                  idPrefix="prev-tuhur-start"
                   label={
                     locale === "tr"
-                      ? "Son Sahih Temizlik Bitişi"
-                      : "Last Valid Purity End"
+                      ? "Son Sahih Temizlik Başlangıcı"
+                      : "Last Valid Purity Start"
                   }
-                  value={prevTuhurEndParts}
-                  onChange={setPrevTuhurEndParts}
+                  value={prevTuhurStartParts}
+                  onChange={(v) => {
+                    setPrevTuhurStartParts(v);
+                    setPurityStartParts(v);
+                    setPrevHayzEndParts(v);
+                  }}
                   timeHint={timeHint}
                 />
                 <div className="rounded-xl border border-amber-200/80 bg-white/70 p-3 text-xs text-amber-900 dark:border-amber-800/40 dark:bg-[#130F12] dark:text-amber-100">
@@ -572,6 +581,11 @@ export function CalculatorForm() {
                   <p>
                     {locale === "tr" ? "Sahih temizlik" : "Valid purity"}:{" "}
                     {formatDurationHint(computedTuhurHours, locale)}
+                    <span className="text-amber-700/80 dark:text-amber-200/70">
+                      {locale === "tr"
+                        ? " (başlangıç → kanama başlangıcı)"
+                        : " (start → bleeding start)"}
+                    </span>
                   </p>
                   <p>
                     {locale === "tr" ? "Mevcut temizlik" : "Current purity"}:{" "}
