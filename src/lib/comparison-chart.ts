@@ -77,10 +77,12 @@ export type BuildComparisonInput = {
 };
 
 /**
- * Üst: Son Sahih Ay = [Hayz × âdet][Temizlik × âdet]  (süre kutucukları)
+ * Her iki satır da temizlik başlangıcından hizalanır (süre kutucukları, takvim günü değil).
+ *
+ * Üst: Son Sahih Ay = [Temizlik × âdet][Hayz × âdet]
  * Alt: 10 günü aşan ay = [Temizlik × mevcut][Kanama çizelgesi…]
  *
- * Takvim ay-günü kullanılmaz. Örn. 17g 8s temizlik → 18 yeşil, 19. kutucuk kan.
+ * Örn. 17g 8s temizlik → 18 yeşil, 19. kutucuk kan.
  * Rastlama çizgisi: aynı sütunda üstte hayz + altta kanama (hayz/istihâze).
  */
 export function buildComparisonChart(
@@ -97,12 +99,12 @@ export function buildComparisonChart(
       ? input.daySchedule.length
       : Math.max(1, hoursToCellCount(input.bleedingHours));
 
-  // Üst satır — süre sırası: önce âdet hayz, sonra âdet temizlik
+  // Üst satır — temizlikten başla, sonra âdet hayz (alt satırla aynı referans)
   const top: ChartCell[] = [];
-  pushKind(top, "HAYZ", habitHayzDays);
   pushKind(top, "TUHR", habitTuhurDays);
+  pushKind(top, "HAYZ", habitHayzDays);
 
-  // Alt satır — süre sırası: önce mevcut temizlik, sonra kanama günleri
+  // Alt satır — mevcut temizlik, sonra kanama günleri
   const bottom: ChartCell[] = [];
   pushKind(bottom, "TUHR", currentTuhurDays);
 
@@ -120,7 +122,7 @@ export function buildComparisonChart(
   padTo(top, columnCount);
   padTo(bottom, columnCount);
 
-  // Sütun hizası: üstte hayz olan sütunda altta kanama varsa rastlama çizgisi
+  // Sadece gerçek rastlama: üstte hayz + altta kanama aynı sütunda
   const alignmentColumns: number[] = [];
   for (let i = 0; i < columnCount; i++) {
     const t = top[i];
@@ -128,13 +130,6 @@ export function buildComparisonChart(
     const bottomBleed = b.kind === "HAYZ" || b.kind === "ISTIHADHA";
     if (t.kind === "HAYZ" && bottomBleed) {
       alignmentColumns.push(i);
-    }
-  }
-
-  // Çizgi yoksa: üst hayz sütunlarına yine de hizalama çiz (karşılaştırma)
-  if (alignmentColumns.length === 0) {
-    for (let i = 0; i < columnCount; i++) {
-      if (top[i].kind === "HAYZ") alignmentColumns.push(i);
     }
   }
 
