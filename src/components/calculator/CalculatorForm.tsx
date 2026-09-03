@@ -112,8 +112,7 @@ export function CalculatorForm() {
     setError(null);
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function runCalculate() {
     setError(null);
     setHabitNotice(null);
 
@@ -160,9 +159,17 @@ export function CalculatorForm() {
         lastValidHabit,
       });
 
-      const sahih = cycleEval.cycleStatus === "SAHIH";
+      const bleedingDays = next.totalHours / 24;
+      const monthAnalysis = analyzeSahihAy({
+        madhhab,
+        bleedingDays,
+        purityDays: purityDaysExact,
+        habitHayzDays,
+      });
+
+      const sahih = monthAnalysis.isSahihMonth;
       setIsSahih(sahih);
-      setCycleExplanation(cycleEval.explanation);
+      setCycleExplanation(cycleEval.explanation || monthAnalysis.explanation);
 
       if (sahih) {
         // Sahih: profili güncelle, accordion kapat
@@ -186,15 +193,6 @@ export function CalculatorForm() {
         // Fâsid: accordion'u aç
         setShowHabitAccordion(true);
       }
-
-      // analyzeSahihAy — döngü kaydına yazılacak badge/açıklama
-      const bleedingDays = next.totalHours / 24;
-      const monthAnalysis = analyzeSahihAy({
-        madhhab,
-        bleedingDays,
-        purityDays: purityDaysExact,
-        habitHayzDays,
-      });
 
       const now = new Date().toISOString();
       const cycleId = uid();
@@ -240,6 +238,11 @@ export function CalculatorForm() {
       setResult(null);
       setError(err instanceof Error ? err.message : "Hesaplama hatası");
     }
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    await runCalculate();
   }
 
   const timeHint =
@@ -344,81 +347,6 @@ export function CalculatorForm() {
             </label>
           </div>
 
-          {/* ── Fâsid ay accordion: Eski sahih âdet verileri ── */}
-          {showHabitAccordion && (
-            <div
-              className={cn(
-                "animate-in fade-in slide-in-from-top-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/30"
-              )}
-            >
-              <div className="mb-3 flex items-start gap-2">
-                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <div>
-                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-                    {locale === "tr"
-                      ? "Döngü Fâsiddir (İstihâze)"
-                      : "Cycle is Irregular (Istihadha)"}
-                  </p>
-                  <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
-                    {locale === "tr"
-                      ? "İstihâze hükümleri için en son geçerli sahih âdetinizi giriniz. Bu bilgiler hayız / istihâze sınırını belirler."
-                      : "Enter your last valid habitual cycle for istihadha rulings."}
-                  </p>
-                  {cycleExplanation && (
-                    <p className="mt-1 text-xs italic text-amber-600 dark:text-amber-400">
-                      {cycleExplanation}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="label-field" htmlFor="habitPurityDays">
-                    {locale === "tr"
-                      ? "Son Sahih Temizlik Süresi (Gün)"
-                      : "Last Valid Purity (Days)"}
-                  </label>
-                  <input
-                    id="habitPurityDays"
-                    type="number"
-                    min={15}
-                    className="input-field"
-                    value={habitPurityDays}
-                    onChange={(e) => setHabitPurityDays(Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="label-field" htmlFor="habitHayzDays">
-                    {locale === "tr"
-                      ? "Son Sahih Hayız Süresi (Gün)"
-                      : "Last Valid Hayd (Days)"}
-                  </label>
-                  <input
-                    id="habitHayzDays"
-                    type="number"
-                    min={1}
-                    className="input-field"
-                    value={habitHayzDays}
-                    onChange={(e) => setHabitHayzDays(Number(e.target.value))}
-                  />
-                </div>
-              </div>
-              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                {locale === "tr"
-                  ? "Bu verileri girdikten sonra tekrar HESAPLA'ya basın."
-                  : "After entering these, press CALCULATE again."}
-              </p>
-            </div>
-          )}
-
-          {/* ── Sahih ay bildirimi ── */}
-          {habitNotice && (
-            <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-200">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span>{habitNotice}</span>
-            </div>
-          )}
-
           {error && (
             <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">
               {error}
@@ -474,57 +402,96 @@ export function CalculatorForm() {
         </aside>
       </div>
 
-      {/* ── Sonuç kartı ── */}
       {result && (
         <div id="sonuc" className="space-y-3">
-          {/* Sahih/Fâsid rozeti */}
-          {isSahih !== null && (
-            <div
-              className={cn(
-                "flex items-start gap-3 rounded-2xl border p-4",
-                isSahih
-                  ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800/40 dark:bg-emerald-950/30"
-                  : "border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/30"
-              )}
-            >
-              {isSahih ? (
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              ) : (
-                <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-              )}
+          {isSahih && (
+            <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800/40 dark:bg-emerald-950/30">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <div>
-                <p
-                  className={cn(
-                    "text-sm font-semibold",
-                    isSahih
-                      ? "text-emerald-800 dark:text-emerald-200"
-                      : "text-amber-800 dark:text-amber-200"
-                  )}
-                >
-                  {isSahih
-                    ? locale === "tr"
-                      ? "Döngünüz Sahihtir ✓"
-                      : "Your cycle is valid ✓"
-                    : locale === "tr"
-                      ? "Döngü Fâsiddir (İstihâze)"
-                      : "Cycle is Irregular (Istihadha)"}
+                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                  {locale === "tr" ? "Döngünüz Sahihtir" : "Your cycle is valid"}
                 </p>
                 {cycleExplanation && (
-                  <p
-                    className={cn(
-                      "mt-0.5 text-xs",
-                      isSahih
-                        ? "text-emerald-700 dark:text-emerald-300"
-                        : "text-amber-700 dark:text-amber-300"
-                    )}
-                  >
+                  <p className="mt-0.5 text-xs text-emerald-700 dark:text-emerald-300">
                     {cycleExplanation}
+                  </p>
+                )}
+                {habitNotice && (
+                  <p className="mt-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                    {habitNotice}
                   </p>
                 )}
               </div>
             </div>
           )}
+
           <ResultCard result={result} />
+
+          {showHabitAccordion && isSahih === false && (
+            <div className="animate-in fade-in slide-in-from-top-2 space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/30">
+              <div className="flex items-start gap-2">
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                    {locale === "tr"
+                      ? "Döngü Fâsiddir (İstihâze)"
+                      : "Cycle is Irregular (Istihadha)"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
+                    {locale === "tr"
+                      ? "İstihâze hükümleri için en son geçerli sahih âdetinizi girmeniz gerekmektedir."
+                      : "Enter your last valid habitual cycle for istihadha rulings."}
+                  </p>
+                  {cycleExplanation && (
+                    <p className="mt-1 text-xs italic text-amber-600 dark:text-amber-400">
+                      {cycleExplanation}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="label-field" htmlFor="habitPurityDays">
+                    {locale === "tr"
+                      ? "Son Sahih Temizlik Süresi (Gün)"
+                      : "Last Valid Purity (Days)"}
+                  </label>
+                  <input
+                    id="habitPurityDays"
+                    type="number"
+                    min={15}
+                    className="input-field"
+                    value={habitPurityDays}
+                    onChange={(e) => setHabitPurityDays(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label className="label-field" htmlFor="habitHayzDays">
+                    {locale === "tr"
+                      ? "Son Sahih Hayız Süresi (Gün)"
+                      : "Last Valid Hayd (Days)"}
+                  </label>
+                  <input
+                    id="habitHayzDays"
+                    type="number"
+                    min={1}
+                    className="input-field"
+                    value={habitHayzDays}
+                    onChange={(e) => setHabitHayzDays(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => void runCalculate()}
+              >
+                {locale === "tr"
+                  ? "Eski âdetle yeniden hesapla"
+                  : "Recalculate with last habit"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

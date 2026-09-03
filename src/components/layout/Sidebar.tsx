@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   BookOpenText,
   Calculator,
   CalendarDays,
+  Droplets,
   Languages,
   ListChecks,
   Mail,
@@ -25,17 +26,20 @@ function SideLink({
   active,
   icon: Icon,
   indent = false,
+  onNavigate,
   children,
 }: {
   href: string;
   active?: boolean;
   icon: React.ComponentType<{ className?: string }>;
   indent?: boolean;
+  onNavigate?: () => void;
   children: React.ReactNode;
 }) {
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       className={cn(
         "flex items-center gap-2.5 rounded-xl py-2 text-sm font-medium transition",
         indent ? "pl-7 pr-3" : "px-3",
@@ -58,64 +62,110 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Sidebar() {
+type SidebarProps = {
+  onNavigate?: () => void;
+};
+
+export function Sidebar({ onNavigate }: SidebarProps) {
   const { locale, toggleLocale } = useI18n();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const cat = searchParams.get("cat");
 
   const is = (prefix: string) =>
     pathname === prefix || pathname.startsWith(prefix + "/");
 
+  const hayzInfoActive = is("/bilgiler") && cat === "rules";
+  const ilmihalActive = is("/bilgiler") && cat !== "rules";
+
   return (
-    <aside className="flex h-full w-[260px] flex-col border-r border-rose-100/70 bg-white/90 dark:border-[#2D222A] dark:bg-[#1C161B]/95">
-      {/* Logo */}
+    <aside className="flex h-full w-[260px] flex-col border-r border-rose-100/70 bg-white/95 dark:border-[#2D222A] dark:bg-[#1C161B]/95">
       <Link
         href="/"
-        className="flex items-center gap-2.5 border-b border-rose-100/70 px-4 py-4 dark:border-[#2D222A]"
+        onClick={onNavigate}
+        className="flex items-center gap-2.5 border-b border-rose-100/70 px-4 py-3.5 dark:border-[#2D222A]"
+        aria-label={locale === "tr" ? "Ana sayfa" : "Home"}
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#F42566] to-[#E11D48] text-white shadow-sm">
           <Sparkles className="h-4 w-4" />
         </span>
-        <span className="text-sm font-bold text-slate-900 dark:text-slate-50">
-          {locale === "tr" ? "Hayz Takvimi" : "Hayz Calendar"}
+        <span className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100">
+          Hayz
         </span>
       </Link>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
-        {/* Ana hesaplama */}
-        <SideLink href="/hesaplama" active={is("/hesaplama")} icon={Calculator}>
+        <SideLink
+          href="/hesaplama"
+          active={is("/hesaplama")}
+          icon={Calculator}
+          onNavigate={onNavigate}
+        >
           {locale === "tr" ? "Hayz Hesaplama" : "Hayd Calculator"}
         </SideLink>
 
         <Divider />
 
-        {/* Geçmiş */}
-        <GroupLabel>{locale === "tr" ? "Geçmiş Kayıtlarım" : "My History"}</GroupLabel>
-        <SideLink href="/takvim" active={is("/takvim")} icon={CalendarDays} indent>
+        <GroupLabel>
+          {locale === "tr" ? "Geçmiş Kayıtlarım" : "My History"}
+        </GroupLabel>
+        <SideLink
+          href="/takvim"
+          active={is("/takvim")}
+          icon={CalendarDays}
+          indent
+          onNavigate={onNavigate}
+        >
           {locale === "tr" ? "Takvim" : "Calendar"}
         </SideLink>
-        <SideLink href="/kaza" active={is("/kaza")} icon={ListChecks} indent>
+        <SideLink
+          href="/kaza"
+          active={is("/kaza")}
+          icon={ListChecks}
+          indent
+          onNavigate={onNavigate}
+        >
           {locale === "tr" ? "Kaza Defteri" : "Qada Tracker"}
         </SideLink>
 
         <Divider />
 
-        {/* Kütüphane */}
         <GroupLabel>{locale === "tr" ? "Kütüphane" : "Library"}</GroupLabel>
-        <SideLink href="/bilgiler" active={is("/bilgiler")} icon={BookOpenText} indent>
+        <SideLink
+          href="/bilgiler?cat=rules"
+          active={hayzInfoActive}
+          icon={Droplets}
+          indent
+          onNavigate={onNavigate}
+        >
+          {locale === "tr" ? "Hayz Bilgileri" : "Hayd Knowledge"}
+        </SideLink>
+        <SideLink
+          href="/bilgiler"
+          active={ilmihalActive}
+          icon={BookOpenText}
+          indent
+          onNavigate={onNavigate}
+        >
           {locale === "tr" ? "İlmihal Bilgisi" : "Knowledge Base"}
         </SideLink>
 
         <Divider />
 
-        {/* Ayarlar */}
         <GroupLabel>{locale === "tr" ? "Ayarlar" : "Settings"}</GroupLabel>
-        <SideLink href="/hesap" active={is("/hesap")} icon={UserRound} indent>
+        <SideLink
+          href="/hesap"
+          active={is("/hesap")}
+          icon={UserRound}
+          indent
+          onNavigate={onNavigate}
+        >
           {locale === "tr" ? "Hesabım" : "My Account"}
         </SideLink>
 
         <Divider />
 
-        <SideLink href="mailto:destek@hayztakvimi.app" icon={Mail}>
+        <SideLink href="mailto:destek@hayztakvimi.app" icon={Mail} onNavigate={onNavigate}>
           {locale === "tr" ? "İletişim" : "Contact"}
         </SideLink>
       </nav>
