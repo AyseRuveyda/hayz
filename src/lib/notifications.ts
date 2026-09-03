@@ -21,7 +21,7 @@ const SCENARIOS: Record<
     titleTR: "25. Gün Temizlik Bildirimi",
     titleEN: "Day 25 Purity Notice",
     bodyTR:
-      "25 günlük temizlik süreniz doldu, yeni hayız döngünüz yaklaşıyor olabilir.",
+      "25 günlük temizlik süreniz doldu, yeni hayz döngünüz yaklaşıyor olabilir.",
     bodyEN:
       "Your 25-day purity period has passed; a new hayd cycle may be approaching.",
   },
@@ -37,7 +37,7 @@ const SCENARIOS: Record<
     titleTR: "Sahih Temizlik Barajı",
     titleEN: "Minimum Purity Barrier",
     bodyTR:
-      "15 günlük asgari temizlik süreniz doldu. Bugünden itibaren gelen kanamalar yeni hayız sayılabilir.",
+      "15 günlük asgari temizlik süreniz doldu. Bugünden itibaren gelen kanamalar yeni hayz sayılabilir.",
     bodyEN:
       "Your 15-day minimum purity period is complete. Bleeding from today may count as a new hayd.",
   },
@@ -103,7 +103,7 @@ export async function showLocalNotification(
 
 /**
  * Döngü bitişine göre yaklaşan bildirim senaryolarını üretir.
- * lastCycleEndIso: son hayız/nifas bitiş tarihi
+ * lastCycleEndIso: son hayz/nifas bitiş tarihi
  */
 export function evaluateUpcomingNotifications(
   lastCycleEndIso: string | null,

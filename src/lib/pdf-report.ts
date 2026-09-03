@@ -70,7 +70,7 @@ export async function downloadCyclePdfReport(
     startY: 38,
     head: [
       locale === "tr"
-        ? ["Başlangıç", "Bitiş", "Durum", "Hayız", "İstihâze", "Kaza", "Gusül"]
+        ? ["Başlangıç", "Bitiş", "Durum", "Hayz", "İstihâze", "Kaza", "Gusül"]
         : ["Start", "End", "Status", "Hayd", "Istihadha", "Qada", "Ghusl"],
     ],
     body: filteredCycles.map((c) => [

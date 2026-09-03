@@ -29,7 +29,7 @@ export function PredictionBanner({
             <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 dark:bg-[#1C161B]/80">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                {locale === "tr" ? "Ort. hayız" : "Avg hayd"}:{" "}
+                {locale === "tr" ? "Ort. hayz" : "Avg hayd"}:{" "}
                 {prediction.averageHayzDays}{" "}
                 {locale === "tr" ? "gün" : "d"}
               </span>
@@ -39,7 +39,7 @@ export function PredictionBanner({
                 {locale === "tr" ? "gün" : "d"}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 dark:bg-[#1C161B]/80">
-                {locale === "tr" ? "Yeni hayız" : "Next hayd"}:{" "}
+                {locale === "tr" ? "Yeni hayz" : "Next hayd"}:{" "}
                 {prediction.daysUntilNextHayz}{" "}
                 {locale === "tr" ? "gün sonra" : "days"}
               </span>

@@ -63,7 +63,7 @@ export default function TakvimPage() {
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {locale === "tr"
-              ? "Renk kodlu hayız, temizlik, istihâze ve leke takibi."
+              ? "Renk kodlu hayz, temizlik, istihâze ve leke takibi."
               : "Color-coded hayd, purity, istihadha and spotting."}
           </p>
         </div>
@@ -251,7 +251,7 @@ function CycleRow({
         <div className="flex shrink-0 items-center gap-1 text-[11px] text-slate-400">
           <span>
             {locale === "tr"
-              ? `${cycle.hayzDays.toFixed(1)} gün hayız`
+              ? `${cycle.hayzDays.toFixed(1)} gün hayz`
               : `${cycle.hayzDays.toFixed(1)}d hayd`}
           </span>
           {expanded ? (
@@ -269,7 +269,7 @@ function CycleRow({
             value={`${(cycle.bleedingDays ?? cycle.hayzDays + cycle.istihadhaDays).toFixed(2)} ${locale === "tr" ? "gün" : "days"}`}
           />
           <Row
-            label={locale === "tr" ? "Hayız" : "Hayd"}
+            label={locale === "tr" ? "Hayz" : "Hayd"}
             value={`${cycle.hayzDays.toFixed(2)} ${locale === "tr" ? "gün" : "days"}`}
           />
           {cycle.istihadhaDays > 0 && (

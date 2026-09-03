@@ -158,7 +158,7 @@ export default function HesapPage() {
           }
         />
         <label className="label-field">
-          {locale === "tr" ? "Sahih hayız (gün)" : "Habitual hayd (days)"}
+          {locale === "tr" ? "Sahih hayz (gün)" : "Habitual hayd (days)"}
         </label>
         <input
           type="number"

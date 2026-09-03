@@ -1,7 +1,7 @@
 {
   "name": "Hayz Takvimi",
   "short_name": "Hayz",
-  "description": "Hayız, nifas ve istihâze takip platformu",
+  "description": "Hayz, nifas ve istihâze takip platformu",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

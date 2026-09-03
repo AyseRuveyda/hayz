@@ -26,7 +26,7 @@ function eachDay(start: Date, end: Date): string[] {
 
 /**
  * Döngü kayıtlarından gün bazlı fıkhi renk haritası üretir.
- * Hayız → kırmızı, istihâze → sarı, aradaki temiz günler → yeşil,
+ * Hayz → kırmızı, istihâze → sarı, aradaki temiz günler → yeşil,
  * 15 günden az aralık → fâsid temizlik (çizgili gri).
  */
 export function buildCalendarMap(
@@ -73,7 +73,7 @@ export function buildCalendarMap(
       }
       cell.kind = kind;
       cell.labelTR =
-        kind === "HAYZ" ? "Hayız" : kind === "ISTIHADHA" ? "İstihâze" : cell.labelTR;
+        kind === "HAYZ" ? "Hayz" : kind === "ISTIHADHA" ? "İstihâze" : cell.labelTR;
       cell.labelEN =
         kind === "HAYZ" ? "Hayd" : kind === "ISTIHADHA" ? "Istihadha" : cell.labelEN;
     }
@@ -137,13 +137,13 @@ export function colorForKind(kind: FiqhDayKind): string {
   }
 }
 
-/** Ramazan günleri ile hayız örtüşen gün sayısı (kaba miladi yaklaşık). */
+/** Ramazan günleri ile hayz örtüşen gün sayısı (kaba miladi yaklaşık). */
 export function countHayzDaysInRamadanApprox(
   cycles: CycleRecord[],
   year: number
 ): number {
   // Basitleştirilmiş: kullanıcı yılı için Mart–Nisan penceresi yerine
-  // döngüdeki hayız günlerini sayıp harici takvim entegrasyonuna bırakırız.
+  // döngüdeki hayz günlerini sayıp harici takvim entegrasyonuna bırakırız.
   // Burada örnek: yıl içindeki tüm HAYZ günlerini döndürür; UI Ramazan etiketi gösterir.
   let days = 0;
   for (const c of cycles) {
@@ -156,7 +156,7 @@ export function countHayzDaysInRamadanApprox(
 
 /**
  * İslami takvim olmadan pratik yaklaşım:
- * Verilen [ramadanStart, ramadanEnd] aralığında hayız günlerini say.
+ * Verilen [ramadanStart, ramadanEnd] aralığında hayz günlerini say.
  */
 export function countHayzOverlapWithRange(
   cycles: CycleRecord[],

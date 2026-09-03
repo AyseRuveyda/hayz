@@ -1,6 +1,6 @@
 # Hayz Takvimi (HayzApp)
 
-Hayız, nifas ve istihâze takip platformu — Next.js 14, TypeScript, Tailwind CSS, PWA ve Supabase.
+Hayz, nifas ve istihâze takip platformu — Next.js 14, TypeScript, Tailwind CSS, PWA ve Supabase.
 
 ## Özellikler
 

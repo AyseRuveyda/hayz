@@ -65,7 +65,7 @@ export default function KazaPage() {
       remaining: days,
       total: days,
       source: "ramadan_hayz",
-      noteTR: `Ramazan hayız örtüşmesi: ${days} gün oruç kazası`,
+      noteTR: `Ramazan hayz örtüşmesi: ${days} gün oruç kazası`,
       noteEN: `Ramadan hayd overlap: ${days} makeup fasts`,
       createdAt: now,
       updatedAt: now,
@@ -81,7 +81,7 @@ export default function KazaPage() {
         </h1>
         <p className="mt-1 text-sm text-slate-500">
           {locale === "tr"
-            ? "İstihâze namazları ve Ramazan hayız oruçları için sayaç."
+            ? "İstihâze namazları ve Ramazan hayz oruçları için sayaç."
             : "Counters for istihadha prayers and Ramadan hayd fasts."}
         </p>
       </div>
@@ -89,7 +89,7 @@ export default function KazaPage() {
       <div className="card-surface space-y-3 p-4">
         <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
           {locale === "tr"
-            ? "Ramazan hayız örtüşmesi (manuel tarih aralığı)"
+            ? "Ramazan hayz örtüşmesi (manuel tarih aralığı)"
             : "Ramadan hayd overlap (manual date range)"}
         </p>
         <div className="grid gap-3 sm:grid-cols-2">

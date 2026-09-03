@@ -265,7 +265,7 @@ export function CycleCalendar({
 
 function Legend({ locale }: { locale: "tr" | "en" }) {
   const items = [
-    { color: FIQH_COLORS.hayz, tr: "Hayız", en: "Hayd" },
+    { color: FIQH_COLORS.hayz, tr: "Hayz", en: "Hayd" },
     { color: FIQH_COLORS.tuhr, tr: "Temizlik", en: "Purity" },
     { color: FIQH_COLORS.istihadha, tr: "İstihâze", en: "Istihadha" },
     { color: FIQH_COLORS.spotting, tr: "Leke", en: "Spotting" },
