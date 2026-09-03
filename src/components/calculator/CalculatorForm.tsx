@@ -16,7 +16,6 @@ import { getGuestProfile, saveGuestProfile, uid } from "@/lib/local-store";
 import {
   dateTimePartsToIso,
   defaultDateTimeParts,
-  splitDateTime,
   type DateTimeParts,
 } from "@/lib/utils";
 import type { CalculationResult, Madhhab } from "@/types/fiqh";
