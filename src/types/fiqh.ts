@@ -59,10 +59,28 @@ export interface CalculationInput {
   isFirstPeriod?: boolean;
   /**
    * Rastlayan/rastlamayan hesabı için önceki âdetin başladığı ay günü (1–31).
-   * Verilmezse alışılmış hayz gün sayısı esas alınır.
+   * Verilmezse `previousPurityStartDate` + habitHayzDays ile türetilir.
    */
   habitCycleStartDay?: number;
+  /**
+   * Önceki temizlik başlangıcı (= önceki hayz bitişi) ISO datetime.
+   * Hanefî 10 günü aşan kanamada rastlama çizelgesi için kullanılır.
+   */
+  previousPurityStartDate?: string;
 }
+
+/** Gün gün hayz / istihâze çizelge satırı. */
+export type DayScheduleKind = "HAYZ" | "ISTIHADHA";
+
+export interface DayScheduleEntry {
+  /** YYYY-MM-DD */
+  date: string;
+  kind: DayScheduleKind;
+  labelTR: string;
+  labelEN: string;
+}
+
+export type OverlapRule = "RASTLAYAN" | "RASTLAMAYAN";
 
 /** Hesaplama motorunun çıktısı. */
 export interface CalculationResult {
@@ -79,6 +97,12 @@ export interface CalculationResult {
   summaryEN: string;
   detailsTR: string[];
   detailsEN: string[];
+  /** Hanefî 10+ gün: gün gün hayz/istihâze listesi. */
+  daySchedule?: DayScheduleEntry[];
+  /** Uygulanan rastlama kuralı. */
+  overlapRule?: OverlapRule | null;
+  /** Kaza gereken istihâze gün sayısı. */
+  kazayaKalanGunler?: number;
 }
 
 // ---------------------------------------------------------------------------

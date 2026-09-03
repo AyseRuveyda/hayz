@@ -65,7 +65,7 @@ export function CalculatorForm() {
   const [isContinuousBleeding, setIsContinuousBleeding] = useState(false);
   const [isFirstPeriod, setIsFirstPeriod] = useState(false);
 
-  // Eski âdet — fâsid ay sonrası accordion
+  // Eski âdet — fâsid / 10+ gün Hanefî sonrası accordion
   const [habitPurityDays, setHabitPurityDays] = useState(15);
   const [habitHayzDays, setHabitHayzDays] = useState(7);
 
@@ -84,6 +84,30 @@ export function CalculatorForm() {
   // Mâlikî için max kontrolü sadece Maliki/taklidinde aktif
   const malikiControlsEnabled =
     madhhab === "MALIKI" || madhhab === "HANAFI_FOLLOWING_MALIKI";
+
+  /** Hanefî + kanama > 10 gün (240 saat) → rastlama / fâsid modu */
+  const hanafiExceedsTenDays = useMemo(() => {
+    if (madhhab !== "HANAFI" && madhhab !== "HANAFI_FOLLOWING_MALIKI") {
+      return false;
+    }
+    try {
+      const startIso = dateTimePartsToIso(startParts);
+      const endIso = dateTimePartsToIso(endParts);
+      const hours =
+        (new Date(endIso).getTime() - new Date(startIso).getTime()) /
+        (1000 * 60 * 60);
+      // Saf Hanefî: 240 saat. Taklitte de 10 günü aşınca âdet verisi gerekir.
+      return hours > 240;
+    } catch {
+      return false;
+    }
+  }, [madhhab, startParts, endParts]);
+
+  useEffect(() => {
+    if (hanafiExceedsTenDays) {
+      setShowHabitAccordion(true);
+    }
+  }, [hanafiExceedsTenDays]);
 
   function madhhabLabel(value: Madhhab) {
     if (value === "HANAFI") return locale === "tr" ? "Hanefi" : "Hanafi";
@@ -130,6 +154,7 @@ export function CalculatorForm() {
         malikiMaxDays: malikiControlsEnabled ? malikiMaxDays : undefined,
         isContinuousBleeding,
         isFirstPeriod: isFirstPeriod || undefined,
+        previousPurityStartDate: purityStartIso,
       });
       setResult(next);
 
@@ -190,7 +215,7 @@ export function CalculatorForm() {
             : `Habit updated — Hayd: ${newHayzDays} days, Purity: ${Math.max(15, newTuhurDays)} days.`
         );
       } else {
-        // Fâsid: accordion'u aç
+        // Fâsid veya 10+ gün: accordion'u aç
         setShowHabitAccordion(true);
       }
 
@@ -347,6 +372,70 @@ export function CalculatorForm() {
             </label>
           </div>
 
+          {/* ── Son Sahih Ay: Hanefî 10+ gün veya fâsid sonuç ── */}
+          {(hanafiExceedsTenDays || showHabitAccordion) && (
+            <div className="animate-in fade-in slide-in-from-top-2 space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/30">
+              <div className="flex items-start gap-2">
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                    {hanafiExceedsTenDays
+                      ? locale === "tr"
+                        ? "Kanama 10 günü aşıyor — Rastlama hesabı"
+                        : "Bleeding exceeds 10 days — Overlap calculation"
+                      : locale === "tr"
+                        ? "Döngü Fâsiddir (İstihâze)"
+                        : "Cycle is Irregular (Istihadha)"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
+                    {locale === "tr"
+                      ? "Hanefî’de 10 günü aşan kanamada önceki sahih âdetiniz (hayz + temizlik) zorunludur. Rastlayan (≥3 gün çakışma) veya rastlamayan kaidesi buna göre uygulanır."
+                      : "For Hanafi bleeding beyond 10 days, enter your last valid habit. Overlap (≥3 days) or non-overlap rules will apply."}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="label-field" htmlFor="habitHayzDays">
+                    {locale === "tr"
+                      ? "Son Sahih Hayz Süresi (Gün)"
+                      : "Last Valid Hayd (Days)"}
+                  </label>
+                  <input
+                    id="habitHayzDays"
+                    type="number"
+                    min={3}
+                    max={10}
+                    className="input-field"
+                    value={habitHayzDays}
+                    onChange={(e) => {
+                      setHabitHayzDays(Number(e.target.value));
+                    }}
+                    required={hanafiExceedsTenDays}
+                  />
+                </div>
+                <div>
+                  <label className="label-field" htmlFor="habitPurityDays">
+                    {locale === "tr"
+                      ? "Son Sahih Temizlik Süresi (Gün)"
+                      : "Last Valid Purity (Days)"}
+                  </label>
+                  <input
+                    id="habitPurityDays"
+                    type="number"
+                    min={15}
+                    className="input-field"
+                    value={habitPurityDays}
+                    onChange={(e) => {
+                      setHabitPurityDays(Number(e.target.value));
+                    }}
+                    required={hanafiExceedsTenDays}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {error && (
             <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">
               {error}
@@ -428,19 +517,19 @@ export function CalculatorForm() {
           <ResultCard result={result} />
 
           {showHabitAccordion && isSahih === false && (
-            <div className="animate-in fade-in slide-in-from-top-2 space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/30">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/30">
               <div className="flex items-start gap-2">
                 <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                 <div>
                   <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
                     {locale === "tr"
-                      ? "Döngü Fâsiddir (İstihâze)"
-                      : "Cycle is Irregular (Istihadha)"}
+                      ? "Son sahih âdet ile yeniden hesaplayın"
+                      : "Recalculate with last valid habit"}
                   </p>
                   <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
                     {locale === "tr"
-                      ? "İstihâze hükümleri için en son geçerli sahih âdetinizi girmeniz gerekmektedir."
-                      : "Enter your last valid habitual cycle for istihadha rulings."}
+                      ? "Yukarıdaki Son Sahih Hayz / Temizlik alanlarını düzenleyip tekrar hesaplayın. Gün gün çizelge sonuç kartındadır."
+                      : "Adjust the Last Valid Hayd / Purity fields above and recalculate. The day schedule is in the result card."}
                   </p>
                   {cycleExplanation && (
                     <p className="mt-1 text-xs italic text-amber-600 dark:text-amber-400">
@@ -449,42 +538,12 @@ export function CalculatorForm() {
                   )}
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="label-field" htmlFor="habitPurityDays">
-                    {locale === "tr"
-                      ? "Son Sahih Temizlik Süresi (Gün)"
-                      : "Last Valid Purity (Days)"}
-                  </label>
-                  <input
-                    id="habitPurityDays"
-                    type="number"
-                    min={15}
-                    className="input-field"
-                    value={habitPurityDays}
-                    onChange={(e) => setHabitPurityDays(Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="label-field" htmlFor="habitHayzDays">
-                    {locale === "tr"
-                      ? "Son Sahih Hayz Süresi (Gün)"
-                      : "Last Valid Hayd (Days)"}
-                  </label>
-                  <input
-                    id="habitHayzDays"
-                    type="number"
-                    min={1}
-                    className="input-field"
-                    value={habitHayzDays}
-                    onChange={(e) => setHabitHayzDays(Number(e.target.value))}
-                  />
-                </div>
-              </div>
               <button
                 type="button"
                 className="btn-primary"
-                onClick={() => void runCalculate()}
+                onClick={() => {
+                  void runCalculate();
+                }}
               >
                 {locale === "tr"
                   ? "Eski âdetle yeniden hesapla"
