@@ -25,6 +25,10 @@ export interface ComparisonChartData {
   istihadhaDays: number;
   kazayaKalanGunler: number;
   overlapRule: OverlapRule | null;
+  /** Saat hassas çakışma (varsa). */
+  overlapHours?: number;
+  /** Cetvel süre ekseninde üst hayz × alt kanama kesişimi (saat). */
+  alignmentOverlapHours?: number;
 }
 
 /** Saat → kutucuk sayısı: 17g 8s → 18 kutucuk (kısmi gün yukarı yuvarlanır). */
@@ -74,6 +78,8 @@ export type BuildComparisonInput = {
   daySchedule?: DayScheduleEntry[];
   overlapRule?: OverlapRule | null;
   kazayaKalanGunler?: number;
+  /** Saat hassas rastleşme süresi (motor). */
+  overlapHours?: number;
 };
 
 /**
@@ -145,6 +151,16 @@ export function buildComparisonChart(
     input.daySchedule?.filter((d) => d.kind === "ISTIHADHA").length ??
     Math.max(0, bleedingDayCount - Math.round(hayzDays));
 
+  // Süre ekseninde üst hayz × alt kanama kesişimi (cetvel rastlaşması, saat)
+  const habitHayzStartH = input.habitTuhurHours;
+  const habitHayzEndH = input.habitTuhurHours + input.habitHayzHours;
+  const bleedStartH = input.currentTuhurHours;
+  const bleedEndH = input.currentTuhurHours + input.bleedingHours;
+  const alignOverlapHours = Math.max(
+    0,
+    Math.min(habitHayzEndH, bleedEndH) - Math.max(habitHayzStartH, bleedStartH)
+  );
+
   return {
     columnCount,
     topCells: top,
@@ -159,6 +175,9 @@ export function buildComparisonChart(
     istihadhaDays: Number(istihadhaDays),
     kazayaKalanGunler: input.kazayaKalanGunler ?? istihadhaDays,
     overlapRule: input.overlapRule ?? null,
+    overlapHours: input.overlapHours,
+    alignmentOverlapHours:
+      alignOverlapHours > 0 ? alignOverlapHours : undefined,
   };
 }
 

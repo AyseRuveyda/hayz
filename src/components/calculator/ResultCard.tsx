@@ -71,6 +71,27 @@ export function ResultCard({ result }: Props) {
         />
       </div>
 
+      {(result.overlapHours != null || result.qadaStartAt) && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {result.overlapHours != null && (
+            <Stat
+              icon={Clock3}
+              label={locale === "tr" ? "Rastleşme (çakışma)" : "Overlap duration"}
+              value={formatOverlap(result.overlapHours, locale)}
+            />
+          )}
+          {result.qadaStartAt && (
+            <Stat
+              icon={CalendarClock}
+              label={
+                locale === "tr" ? "Kaza başlangıcı" : "Makeup starts"
+              }
+              value={formatDateTime(result.qadaStartAt, locale)}
+            />
+          )}
+        </div>
+      )}
+
       <div className="rounded-2xl border border-rose-100/70 bg-[#FDF8F7] p-4 dark:border-[#2D222A] dark:bg-[#130F12]">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
           <CalendarClock className="h-4 w-4 text-[#F42566]" />
@@ -118,4 +139,23 @@ function Stat({
       </p>
     </div>
   );
+}
+
+function formatOverlap(hours: number, locale: "tr" | "en"): string {
+  const totalMin = Math.round(hours * 60);
+  const d = Math.floor(totalMin / (24 * 60));
+  const h = Math.floor((totalMin % (24 * 60)) / 60);
+  const m = totalMin % 60;
+  if (locale === "tr") {
+    const parts: string[] = [];
+    if (d) parts.push(`${d}g`);
+    if (h) parts.push(`${h}s`);
+    if (m || !parts.length) parts.push(`${m}dk`);
+    return parts.join(" ");
+  }
+  const parts: string[] = [];
+  if (d) parts.push(`${d}d`);
+  if (h) parts.push(`${h}h`);
+  if (m || !parts.length) parts.push(`${m}m`);
+  return parts.join(" ");
 }

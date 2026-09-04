@@ -130,6 +130,18 @@ export function ComparisonRuler({
               ? ` · ${chart.overlapRule === "RASTLAYAN" ? "Rastlayan" : "Rastlamayan"} kaidesi`
               : ` · ${chart.overlapRule === "RASTLAYAN" ? "Overlap" : "Non-overlap"} rule`
             : ""}
+          {chart.overlapHours != null && chart.overlapHours > 0
+            ? locale === "tr"
+              ? ` · Çakışma: ${formatChartOverlap(chart.overlapHours)}`
+              : ` · Overlap: ${formatChartOverlap(chart.overlapHours)}`
+            : ""}
+          {chart.alignmentOverlapHours != null &&
+          chart.alignmentOverlapHours > 0 &&
+          chart.alignmentOverlapHours !== chart.overlapHours
+            ? locale === "tr"
+              ? ` · Cetvel hizası: ${formatChartOverlap(chart.alignmentOverlapHours)}`
+              : ` · Chart align: ${formatChartOverlap(chart.alignmentOverlapHours)}`
+            : ""}
         </p>
       </div>
 
@@ -310,4 +322,16 @@ function RulingCard({
       <p className="mt-1 text-[11px] text-stone-600">{hint}</p>
     </div>
   );
+}
+
+function formatChartOverlap(hours: number): string {
+  const totalMin = Math.round(hours * 60);
+  const d = Math.floor(totalMin / (24 * 60));
+  const h = Math.floor((totalMin % (24 * 60)) / 60);
+  const m = totalMin % 60;
+  const parts: string[] = [];
+  if (d) parts.push(`${d}g`);
+  if (h) parts.push(`${h}s`);
+  if (m || !parts.length) parts.push(`${m}dk`);
+  return parts.join(" ");
 }
