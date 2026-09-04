@@ -47,8 +47,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
-          <span className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
-            <BrandLogo size="sm" />
+          <span className="flex items-center gap-2 text-base font-semibold leading-none text-slate-800 dark:text-slate-100">
+            <BrandLogo size="sm" priority />
             Hayz
           </span>
         </header>
