@@ -29,7 +29,7 @@ export function BrandLogo({ size = "md", className, priority }: Props) {
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/icons/logo-mark.png?v=5"
+        src="/icons/logo-mark.png?v=6"
         alt="Hayz"
         width={px}
         height={px}
