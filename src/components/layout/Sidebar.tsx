@@ -80,8 +80,8 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         className="flex items-center gap-2.5 border-b border-rose-100/70 px-4 py-3.5 dark:border-[#2D222A]"
         aria-label={locale === "tr" ? "Ana sayfa" : "Home"}
       >
-        <BrandLogo size="md" priority />
-        <span className="text-base font-semibold leading-none tracking-tight text-slate-800 dark:text-slate-100">
+        <BrandLogo size="lg" priority />
+        <span className="text-lg font-semibold leading-none tracking-tight text-slate-800 dark:text-slate-100">
           Hayz
         </span>
       </Link>
