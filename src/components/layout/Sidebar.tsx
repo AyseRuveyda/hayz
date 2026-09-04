@@ -77,11 +77,11 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       <Link
         href="/"
         onClick={onNavigate}
-        className="flex items-center gap-2.5 border-b border-rose-100/70 px-4 py-3.5 dark:border-[#2D222A]"
+        className="flex items-center gap-2.5 overflow-visible border-b border-rose-100/70 px-4 py-3 dark:border-[#2D222A]"
         aria-label={locale === "tr" ? "Ana sayfa" : "Home"}
       >
         <BrandLogo size="lg" priority />
-        <span className="text-lg font-semibold leading-none tracking-tight text-slate-800 dark:text-slate-100">
+        <span className="text-base font-semibold leading-none tracking-tight text-slate-800 dark:text-slate-100">
           Hayz
         </span>
       </Link>

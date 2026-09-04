@@ -1,35 +1,40 @@
 import { cn } from "@/lib/utils";
 
 type Props = {
-  /** Sidebar/header: sm=48, md=56, lg=64 — Hayz yazısıyla hizalı */
+  /**
+   * Ideal mark sizes (full logo, no crop):
+   * sm=36 (mobile header), md=40 (default), lg=44 (sidebar)
+   */
   size?: "sm" | "md" | "lg";
   className?: string;
   priority?: boolean;
 };
 
 const SIZE = {
-  sm: 48,
-  md: 56,
-  lg: 64,
+  sm: 36,
+  md: 40,
+  lg: 44,
 } as const;
 
-/** Site markası — lotus / hilâl (yüksek çözünürlük PNG, inline boyut) */
+/** Site markası — lotus / hilâl; tam görünür, kırpılmadan */
 export function BrandLogo({ size = "md", className, priority }: Props) {
   const px = SIZE[size];
   return (
     <span
-      className={cn("relative inline-flex shrink-0 items-center justify-center", className)}
+      className={cn(
+        "relative inline-flex shrink-0 items-center justify-center overflow-visible",
+        className
+      )}
       style={{ width: px, height: px }}
     >
-      {/* native img + inline size: net görünüm, Tailwind sınıfına bağımlı değil */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/icons/logo-mark.png"
+        src="/icons/logo-mark.png?v=4"
         alt="Hayz"
         width={px}
         height={px}
         style={{ width: px, height: px }}
-        className="select-none object-contain object-center"
+        className="block max-h-full max-w-full select-none object-contain object-center"
         draggable={false}
         decoding="async"
         {...(priority
