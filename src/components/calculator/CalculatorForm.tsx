@@ -11,6 +11,7 @@ import { DateTimeField } from "@/components/ui/DateTimeField";
 import { buildComparisonChart } from "@/lib/comparison-chart";
 import { saveCycle, saveQada } from "@/lib/data-sync";
 import { analyzeSahihAy, calculateFiqhStatus, evaluateCycleWithHabit } from "@/lib/fiqh-engine";
+import { evaluateHabitChange } from "@/lib/habit-change";
 import { useI18n } from "@/lib/i18n";
 import { getGuestProfile, saveGuestProfile, uid } from "@/lib/local-store";
 import {
@@ -274,26 +275,54 @@ export function CalculatorForm() {
       setIsSahih(sahih);
       setCycleExplanation(cycleEval.explanation || monthAnalysis.explanation);
 
-      if (sahih) {
-        // Sahih: profili güncelle, accordion kapat
-        const newHayzDays = Math.round(cycleEval.updatedHabit.hayzHours / 24);
-        const newTuhurDays = Math.round(cycleEval.updatedHabit.tuhurHours / 24);
-        saveGuestProfile({
-          ...profile,
-          habitHayzDays: newHayzDays,
-          habitPurityDays: Math.max(15, newTuhurDays),
-          updatedAt: new Date().toISOString(),
-        });
-        setHabitHayzDays(newHayzDays);
-        setHabitPurityDays(Math.max(15, newTuhurDays));
-        setShowHabitAccordion(false);
-        setHabitNotice(
-          locale === "tr"
-            ? `Âdetiniz güncellendi — Hayz: ${newHayzDays} gün, Temizlik: ${Math.max(15, newTuhurDays)} gün.`
-            : `Habit updated — Hayd: ${newHayzDays} days, Purity: ${Math.max(15, newTuhurDays)} days.`
+      const prevHayzForChange = habitHayzDays;
+      const prevTuhurForChange = habitPurityDays;
+      const habitChange = evaluateHabitChange({
+        madhhab,
+        previousHabitHayzDays: prevHayzForChange,
+        previousHabitTuhurDays: prevTuhurForChange,
+        bleedingDays,
+        purityDays: purityDaysExact,
+        isSahihMonth: sahih,
+        assignedHayzDays: next.hayzDays,
+        malikiMaxDays: malikiMaxDays,
+        isContinuousBleeding,
+        isFirstPeriod,
+      });
+
+      if (sahih || habitChange.changed) {
+        const newHayzDays = habitChange.newHayzDays;
+        const newTuhurDays = Math.max(
+          15,
+          habitChange.newTuhurDays ??
+            Math.round(cycleEval.updatedHabit.tuhurHours / 24)
         );
-      } else {
-        // Fâsid veya 10+ gün: accordion'u aç
+        if (sahih || madhhab !== "HANAFI") {
+          saveGuestProfile({
+            ...profile,
+            habitHayzDays: newHayzDays,
+            habitPurityDays: newTuhurDays,
+            malikiMaxDays: Math.max(
+              malikiMaxDays,
+              newHayzDays,
+              profile.malikiMaxDays ?? 0
+            ),
+            updatedAt: new Date().toISOString(),
+          });
+          setHabitHayzDays(newHayzDays);
+          setHabitPurityDays(newTuhurDays);
+          if (madhhab === "MALIKI" || madhhab === "HANAFI_FOLLOWING_MALIKI") {
+            setMalikiMaxDays(Math.max(malikiMaxDays, newHayzDays));
+          }
+        }
+        if (sahih) setShowHabitAccordion(false);
+      }
+
+      setHabitNotice(
+        locale === "tr" ? habitChange.messageTR : habitChange.messageEN
+      );
+
+      if (!sahih) {
         setShowHabitAccordion(true);
       }
 
@@ -712,12 +741,23 @@ export function CalculatorForm() {
                     {cycleExplanation}
                   </p>
                 )}
-                {habitNotice && (
-                  <p className="mt-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                    {habitNotice}
-                  </p>
-                )}
               </div>
+            </div>
+          )}
+
+          {habitNotice && (
+            <div className="rounded-2xl border border-[#F42566]/25 bg-[#FFF7F6] p-4 dark:border-[#F42566]/30 dark:bg-[#2A151c]/40">
+              <p className="text-sm font-semibold text-[#E11D48]">
+                {locale === "tr" ? "Âdet / hayz süresi sonucu" : "Habit / hayd length result"}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+                {habitNotice}
+              </p>
+              <p className="mt-2 text-[11px] text-slate-500">
+                {locale === "tr"
+                  ? "Kaynak: hayzdosya.pdf — Hayzın Değişmesi / Mâlikî kaideleri. Ayrıntı için Hayz Bilgileri → Genel Kurallar / Mâlikî."
+                  : "Source: hayzdosya.pdf habit-change / Maliki rules. See Knowledge → Rules / Maliki."}
+              </p>
             </div>
           )}
 

@@ -135,10 +135,67 @@ export const knowledgeItems: KnowledgeItem[] = [
     sourcesTR: "Seâdet-i Ebediyye",
     sourcesEN: "Sadat-i Abadiyya",
   },
+  {
+    id: "hayzin-degismesi-kurali",
+    category: "Genel Kurallar",
+    categoryKey: "rules",
+    titleTR: "Hayzın Değişmesi Kuralı",
+    titleEN: "Rule of Habit Change",
+    contentTR:
+      "Kadın bir önceki âdetinin zamanına ve sayısına uygun kan görürse hayz değişmemiş sayılır; uygun olmazsa âdet değişmiş kabul edilir (bir kere uygun olmayınca yeter). Örnek: âdeti 5 gün olan kadın bir kere 7 gün sahîh kan görünce âdeti 7 olur. Bu değişmeler en fazla 10 güne kadar olur; 11+ gün sürerse önceki âdetten fazlası özürdür. Temizlik sayısı da bir kere başka sayıda sahîh temizlikle değişir (örn. 20→25 veya en az 15’e inme). Kâide: Fâsid kan ve fâsid temizlik âdeti değiştirmez. 10 günü aşan kanamada ≥3 gün eski âdete rastlarsa rastlayanlar hayz / kalan istihâza; rastlamazsa gün sayısı değişmez, âdet zamanı (başlangıç) değişir.",
+    contentEN:
+      "If bleeding matches the previous habit’s timing and length, the habit is unchanged; otherwise one mismatched valid cycle changes it. Example: habit 5 days → one valid 7-day bleed becomes 7. Changes cap at 10 days in Hanafi; beyond that the excess is excuse bleeding. Valid purity can also change once. Invalid blood/purity never change the habit. Overlap rules apply when bleeding exceeds 10 days.",
+    sourcesTR: "hayzdosya.pdf — Hayzın Değişmesi Kuralı",
+    sourcesEN: "hayzdosya.pdf — Habit change",
+  },
+  {
+    id: "adet-degismesi-sekilleri",
+    category: "Genel Kurallar",
+    categoryKey: "rules",
+    titleTR: "Âdetin Değişmesi Kaç Şekilde Olur?",
+    titleEN: "Forms of Habit Change",
+    contentTR:
+      "1) Âdeti 10 günden az olanlar: Bir kere 10 gün veya daha az sahîh kan görünce yeni gün sayısı âdet olur. 2) 10 günden fazla sürenler: A) Önceki âdete ≥3 gün rastlamayanlarda önceki âdet kadar gün hayz, sonrası istihâza (gün sayısı değişmez, zaman kayabilir). B) ≥3 gün rastlayanlarda yalnız rastlayan günler hayz, diğer kanlı günler istihâzadır. Ana kaide: Bir kere başka sayıda SAHÎH kan âdeti; bir kere başka sayıda SAHÎH temizlik temizlik sayısını değiştirir.",
+    contentEN:
+      "Under 10 days: one valid bleed of ≤10 days sets the new habit length. Over 10 days: overlap ≥3 days → overlapping days are hayd; otherwise keep previous day-count as hayd and treat the rest as istihadha. Valid blood/purity change the habit once; invalid never does.",
+    sourcesTR: "hayzdosya.pdf — Âdetin Değişmesi",
+    sourcesEN: "hayzdosya.pdf — Habit change forms",
+  },
+  {
+    id: "maliki-hayz-nifas",
+    category: "Mâlikî",
+    categoryKey: "maliki",
+    titleTR: "Mâlikî’de Hayz ve Nifâs",
+    titleEN: "Hayd and Nifas in Maliki",
+    contentTR:
+      "Dokuz yaşına gelmiş kızda sebepsiz kırmızı/sarı/bulanık akıntı hayz kanıdır; akmaya başlayınca hayz olur. 15 günden azı âdet, fazlası istihâzadır. Sonraki ayda âdet değişirse âdetlerin en çoğunun 3 gün fazlası hayz olur; daha fazlası ve 15+ istihâzadır. Temizlik asgarisi 15 gündür. Doğumdan önce gelen kan hayzdır; karın yarılarak (sezaryen) alınan çocukta gelen kan nifâs olmaz. Nifâs azamî 60 gündür; 15 gün kesilirse tâhir olur.",
+    contentEN:
+      "Maliki: any drop may start hayd; max 15 days. Later months may use max-seen + 3 (cap 15). Min purity 15 days. Antepartum bleeding is hayd; cesarean blood is not nifas. Nifas max 60 days.",
+    sourcesTR: "hayzdosya.pdf — Mâlikî’de Hayz ve Nifâs",
+    sourcesEN: "hayzdosya.pdf — Maliki hayd & nifas",
+  },
+  {
+    id: "maliki-kaideler",
+    category: "Mâlikî",
+    categoryKey: "maliki",
+    titleTR: "Mâlikî’de Bazı Kaideler",
+    titleEN: "Selected Maliki Rules",
+    contentTR:
+      "1) Hayzın en azı yoktur; en fazlası 15 gündür. 2) İkinci hayz için en az 15 gün ara gerekir. 3) 70 yaş (âyise) sonrası kan istihâzadır. 4) Hamilelik/doğum öncesi kan Mâlikî’de hayz (Hanefî’de istihâza); taklitte oruç tutulur, namaz kılınmaz sonra kaza. 5) Kız istimrârında 15 hayz + 15 istihâza. Kadınlarda birinci ay: en çok âdet + 3’e kadar hayz (≤15), ay 30’a tamamlanır; ikinci ay bir önceki kabul edilen hayz + 3… 15’e kadar böyle; 15 aşılırsa 15+15. 6–8) Sezaryen nifâs olmaz (taklitte Hanefî’ye uyulur); nifâs arası <15 temizlik nifâsa dâhildir; 15+ temizlik nifâsı bitirir.",
+    contentEN:
+      "No minimum hayd; max 15. Next hayd needs 15 clean days. Age 70+ is istihadha. Pregnancy bleeding is hayd in Maliki. Istimrar girls: 15+15. Women: each long month may take previous accepted hayd + 3 up to 15 (not a blind auto +3 every month—conditions apply). Cesarean blood is not nifas for Maliki.",
+    sourcesTR: "hayzdosya.pdf — Mâlikî’de Bazı Kaideler",
+    sourcesEN: "hayzdosya.pdf — Maliki maxims",
+  },
 ];
 
 export const knowledgeCategories = [
   { key: "all" as const, labelTR: "Hepsi", labelEN: "All" },
+  {
+    key: "glossary" as const,
+    labelTR: "Sözlük",
+    labelEN: "Glossary",
+  },
   {
     key: "fasting" as const,
     labelTR: "Oruç ve İbadet",
@@ -149,6 +206,11 @@ export const knowledgeCategories = [
     key: "rules" as const,
     labelTR: "Genel Kurallar",
     labelEN: "General Rules",
+  },
+  {
+    key: "maliki" as const,
+    labelTR: "Mâlikî",
+    labelEN: "Maliki",
   },
   { key: "hajj" as const, labelTR: "Hac ve Umre", labelEN: "Hajj & Umrah" },
   {

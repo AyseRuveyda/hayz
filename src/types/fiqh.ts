@@ -34,11 +34,13 @@ export type CalculationStatus =
 /** Bilgi kartı kategori anahtarı. */
 export type KnowledgeCategoryKey =
   | "all"
+  | "glossary"
   | "fasting"
   | "prayer"
   | "rules"
   | "hajj"
-  | "istihadha";
+  | "istihadha"
+  | "maliki";
 
 /** Hesaplama motoruna giden girdiler. */
 export interface CalculationInput {
