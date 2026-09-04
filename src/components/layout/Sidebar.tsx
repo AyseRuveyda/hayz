@@ -146,7 +146,12 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
         <Divider />
 
-        <SideLink href="mailto:destek@hayztakvimi.app" icon={Mail} onNavigate={onNavigate}>
+        <SideLink
+          href="/iletisim"
+          active={is("/iletisim")}
+          icon={Mail}
+          onNavigate={onNavigate}
+        >
           {locale === "tr" ? "İletişim" : "Contact"}
         </SideLink>
       </nav>
