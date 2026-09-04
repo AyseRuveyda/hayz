@@ -89,15 +89,15 @@ export async function showLocalNotification(
   if (reg?.showNotification) {
     await reg.showNotification(title, {
       body,
-      icon: "/icons/icon-192.svg",
-      badge: "/icons/icon-192.svg",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
       tag: notification.scenario,
       data: { scenario: notification.scenario },
     });
     return true;
   }
 
-  new Notification(title, { body, icon: "/icons/icon-192.svg" });
+  new Notification(title, { body, icon: "/icons/icon-192.png" });
   return true;
 }
 

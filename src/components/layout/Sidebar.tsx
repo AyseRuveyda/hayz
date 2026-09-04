@@ -9,9 +9,9 @@ import {
   Languages,
   ListChecks,
   Mail,
-  Sparkles,
   UserRound,
 } from "lucide-react";
+import { BrandLogo } from "@/components/layout/BrandLogo";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -80,9 +80,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         className="flex items-center gap-2.5 border-b border-rose-100/70 px-4 py-3.5 dark:border-[#2D222A]"
         aria-label={locale === "tr" ? "Ana sayfa" : "Home"}
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#F42566] to-[#E11D48] text-white shadow-sm">
-          <Sparkles className="h-4 w-4" />
-        </span>
+        <BrandLogo size="md" priority />
         <span className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100">
           Hayz
         </span>
