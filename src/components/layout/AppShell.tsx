@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-12 items-center gap-2 overflow-visible border-b border-rose-100/70 bg-white/90 px-3 backdrop-blur-md safe-top dark:border-[#2D222A] dark:bg-[#1C161B]/95 lg:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 overflow-visible border-b border-rose-100/70 bg-white/90 px-3 backdrop-blur-md safe-top dark:border-[#2D222A] dark:bg-[#1C161B]/95 lg:hidden">
           <button
             type="button"
             className="touch-target rounded-xl p-2 text-slate-600 dark:text-slate-300"

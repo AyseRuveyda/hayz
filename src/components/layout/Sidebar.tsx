@@ -81,7 +81,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         aria-label={locale === "tr" ? "Ana sayfa" : "Home"}
       >
         <BrandLogo size="lg" priority />
-        <span className="text-base font-semibold leading-none tracking-tight text-slate-800 dark:text-slate-100">
+        <span className="text-[15px] font-semibold leading-none tracking-tight text-slate-800 dark:text-slate-100">
           Hayz
         </span>
       </Link>

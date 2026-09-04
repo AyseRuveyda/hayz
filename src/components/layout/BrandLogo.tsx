@@ -2,8 +2,8 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   /**
-   * Ideal mark sizes (full logo, no crop):
-   * sm=36 (mobile header), md=40 (default), lg=44 (sidebar)
+   * Responsive ideal sizes (full logo, never cropped):
+   * sm=40 mobile header · md=44 · lg=48 sidebar
    */
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -11,12 +11,12 @@ type Props = {
 };
 
 const SIZE = {
-  sm: 36,
-  md: 40,
-  lg: 44,
+  sm: 40,
+  md: 44,
+  lg: 48,
 } as const;
 
-/** Site markası — lotus / hilâl; tam görünür, kırpılmadan */
+/** Site markası — lotus / hilâl; tam görünür, kırpılmadan, ideal boyutta */
 export function BrandLogo({ size = "md", className, priority }: Props) {
   const px = SIZE[size];
   return (
@@ -25,16 +25,16 @@ export function BrandLogo({ size = "md", className, priority }: Props) {
         "relative inline-flex shrink-0 items-center justify-center overflow-visible",
         className
       )}
-      style={{ width: px, height: px }}
+      style={{ width: px, height: px, minWidth: px, minHeight: px }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/icons/logo-mark.png?v=4"
+        src="/icons/logo-mark.png?v=5"
         alt="Hayz"
         width={px}
         height={px}
         style={{ width: px, height: px }}
-        className="block max-h-full max-w-full select-none object-contain object-center"
+        className="pointer-events-none block select-none object-contain object-center"
         draggable={false}
         decoding="async"
         {...(priority
