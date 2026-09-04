@@ -208,6 +208,25 @@ export default function HesapPage() {
           }
         />
 
+        <label className="label-field" htmlFor="profile-email">
+          {locale === "tr" ? "İletişim e-postası" : "Contact email"}
+        </label>
+        <input
+          id="profile-email"
+          type="email"
+          className="input-field"
+          placeholder="ornek@mail.com"
+          value={profile.email ?? ""}
+          onChange={(e) =>
+            setProfile((p) => ({ ...p, email: e.target.value || null }))
+          }
+        />
+        <p className="text-[11px] text-slate-400">
+          {locale === "tr"
+            ? "Fıkıh asistanında bilinemeyen sorular destek@hayztakvimi.app adresine iletilirken bu e-posta bildirilir."
+            : "Used when forwarding unanswered assistant questions to destek@hayztakvimi.app."}
+        </p>
+
         <label className="label-field" htmlFor="profile-madhhab">
           {locale === "tr" ? "Mezhep" : "Madhhab"}
         </label>

@@ -195,7 +195,7 @@ export const translations: Record<Locale, Dict> = {
       send: "Gönder",
       close: "Kapat",
       disclaimer:
-        "Yanıtlar bilgilendirme amaçlıdır; kesin hüküm için ehil bir âlime danışınız.",
+        "Yanıtlar yalnızca hayzdosya.pdf kaynağına dayanır. Bilinmeyen sorular destek@hayztakvimi.app adresine iletilir; 24 saat içinde dönüş yapılır. Kesin hüküm için ehil bir âlime danışınız.",
       quick1: "3 günden kısa kanama ne sayılır?",
       quick2: "10 günden uzun kanamada ne yapılır?",
       quick3: "İstihâzede namaz kılınır mı?",
@@ -304,7 +304,7 @@ export const translations: Record<Locale, Dict> = {
       send: "Send",
       close: "Close",
       disclaimer:
-        "Answers are informational only; consult a qualified scholar for definitive rulings.",
+        "Answers are limited to hayzdosya.pdf. Unknown questions are forwarded to destek@hayztakvimi.app; reply within 24 hours. Consult a qualified scholar for definitive rulings.",
       quick1: "What is bleeding shorter than 3 days?",
       quick2: "What if bleeding exceeds 10 days?",
       quick3: "Do I pray during istihadha?",
