@@ -24,8 +24,12 @@ const MADHHABS: Madhhab[] = [
   "HANAFI",
   "MALIKI",
   "HANAFI_FOLLOWING_MALIKI",
-  "HANBALI",
 ];
+
+function normalizeSelectableMadhhab(value: string | null | undefined): Madhhab {
+  if (value === "MALIKI" || value === "HANAFI_FOLLOWING_MALIKI") return value;
+  return "HANAFI";
+}
 
 function defaultPurityStart(): DateTimeParts {
   return defaultDateTimeParts(22, 8, 0); // ~22 gün önce (15+ gün temizlik)
@@ -73,15 +77,11 @@ export function CalculatorForm() {
 
   const initialMadhhab = useMemo(() => {
     const q = searchParams.get("madhhab");
-    if (
-      q === "MALIKI" ||
-      q === "HANAFI" ||
-      q === "HANAFI_FOLLOWING_MALIKI" ||
-      q === "HANBALI"
-    ) {
+    if (q === "MALIKI" || q === "HANAFI" || q === "HANAFI_FOLLOWING_MALIKI") {
       return q as Madhhab;
     }
-    return "HANAFI" as Madhhab;
+    // Profil tercihi (Hanbelî kayıtlıysa Hanefi’ye düş)
+    return normalizeSelectableMadhhab(getGuestProfile().madhhab);
   }, [searchParams]);
 
   // Form state
@@ -89,7 +89,10 @@ export function CalculatorForm() {
   const [startParts, setStartParts] = useState<DateTimeParts>(defaultStart);
   const [endParts, setEndParts] = useState<DateTimeParts>(defaultEnd);
   const [madhhab, setMadhhab] = useState<Madhhab>(initialMadhhab);
-  const [malikiMaxDays, setMalikiMaxDays] = useState(15);
+  const [malikiMaxDays, setMalikiMaxDays] = useState(() => {
+    const p = getGuestProfile();
+    return Math.max(1, p.malikiMaxDays ?? 15);
+  });
   const [isContinuousBleeding, setIsContinuousBleeding] = useState(false);
   const [isFirstPeriod, setIsFirstPeriod] = useState(false);
 
@@ -181,10 +184,13 @@ export function CalculatorForm() {
   function madhhabLabel(value: Madhhab) {
     if (value === "HANAFI") return locale === "tr" ? "Hanefi" : "Hanafi";
     if (value === "MALIKI") return "Maliki";
-    if (value === "HANBALI") return locale === "tr" ? "Hanbelî" : "Hanbali";
-    return locale === "tr"
-      ? "Hanefi (Maliki taklidi)"
-      : "Hanafi (following Maliki)";
+    if (value === "HANAFI_FOLLOWING_MALIKI") {
+      return locale === "tr"
+        ? "Hanefi (Maliki taklidi)"
+        : "Hanafi (following Maliki)";
+    }
+    // Hanbelî UI’da seçilemez; güvenlik için Hanefi göster
+    return locale === "tr" ? "Hanefi" : "Hanafi";
   }
 
   function handleClear() {
@@ -454,8 +460,16 @@ export function CalculatorForm() {
               <select
                 id="madhhab"
                 className="input-field"
-                value={madhhab}
-                onChange={(e) => setMadhhab(e.target.value as Madhhab)}
+                value={normalizeSelectableMadhhab(madhhab)}
+                onChange={(e) => {
+                  const next = e.target.value as Madhhab;
+                  setMadhhab(next);
+                  saveGuestProfile({
+                    ...getGuestProfile(),
+                    madhhab: next,
+                    updatedAt: new Date().toISOString(),
+                  });
+                }}
               >
                 {MADHHABS.map((m) => (
                   <option key={m} value={m}>
@@ -477,7 +491,15 @@ export function CalculatorForm() {
                   max={30}
                   className="input-field"
                   value={malikiMaxDays}
-                  onChange={(e) => setMalikiMaxDays(Number(e.target.value))}
+                  onChange={(e) => {
+                    const next = Number(e.target.value);
+                    setMalikiMaxDays(next);
+                    saveGuestProfile({
+                      ...getGuestProfile(),
+                      malikiMaxDays: next,
+                      updatedAt: new Date().toISOString(),
+                    });
+                  }}
                 />
                 <p className="mt-1 text-xs text-slate-400">{t.calculator.maxHayzHint}</p>
               </div>

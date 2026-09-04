@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
   getGuestProfile,
@@ -9,6 +9,28 @@ import {
 } from "@/lib/data-sync";
 import { useI18n } from "@/lib/i18n";
 import type { UserProfile } from "@/types/cycle";
+import type { Madhhab } from "@/types/fiqh";
+
+const PROFILE_MADHHABS: Madhhab[] = [
+  "HANAFI",
+  "MALIKI",
+  "HANAFI_FOLLOWING_MALIKI",
+];
+
+function normalizeMadhhab(value: string | undefined): Madhhab {
+  if (value === "MALIKI" || value === "HANAFI_FOLLOWING_MALIKI") return value;
+  return "HANAFI";
+}
+
+function madhhabLabel(value: Madhhab, locale: "tr" | "en"): string {
+  if (value === "MALIKI") return "Maliki";
+  if (value === "HANAFI_FOLLOWING_MALIKI") {
+    return locale === "tr"
+      ? "Hanefi (Maliki taklidi)"
+      : "Hanafi (following Maliki)";
+  }
+  return locale === "tr" ? "Hanefi" : "Hanafi";
+}
 
 export default function HesapPage() {
   const { locale, setLocale } = useI18n();
@@ -16,10 +38,29 @@ export default function HesapPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [profile, setProfile] = useState<UserProfile>(getGuestProfile());
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    const p = getGuestProfile();
+    return {
+      ...p,
+      madhhab: normalizeMadhhab(p.madhhab),
+      malikiMaxDays: p.malikiMaxDays ?? 15,
+    };
+  });
+
+  const malikiMaxEnabled = useMemo(
+    () =>
+      profile.madhhab === "MALIKI" ||
+      profile.madhhab === "HANAFI_FOLLOWING_MALIKI",
+    [profile.madhhab]
+  );
 
   useEffect(() => {
-    setProfile(getGuestProfile());
+    const p = getGuestProfile();
+    setProfile({
+      ...p,
+      madhhab: normalizeMadhhab(p.madhhab),
+      malikiMaxDays: p.malikiMaxDays ?? 15,
+    });
     const sb = getSupabase();
     if (!sb) return;
     void sb.auth.getUser().then(({ data }) => {
@@ -64,12 +105,20 @@ export default function HesapPage() {
   }
 
   function saveProfile() {
-    saveGuestProfile({
+    const madhhab = normalizeMadhhab(profile.madhhab);
+    const next: UserProfile = {
       ...profile,
+      madhhab,
+      malikiMaxDays:
+        madhhab === "MALIKI" || madhhab === "HANAFI_FOLLOWING_MALIKI"
+          ? Math.max(1, Number(profile.malikiMaxDays) || 15)
+          : profile.malikiMaxDays ?? 15,
       locale,
       updatedAt: new Date().toISOString(),
-    });
-    setLocale(profile.locale);
+    };
+    saveGuestProfile(next);
+    setProfile(next);
+    setLocale(next.locale);
     setMessage(locale === "tr" ? "Profil kaydedildi." : "Profile saved.");
   }
 
@@ -147,23 +196,74 @@ export default function HesapPage() {
         <p className="text-sm font-semibold">
           {locale === "tr" ? "Profil tercihleri" : "Profile preferences"}
         </p>
-        <label className="label-field">
+        <label className="label-field" htmlFor="displayName">
           {locale === "tr" ? "Görünen ad" : "Display name"}
         </label>
         <input
+          id="displayName"
           className="input-field"
           value={profile.displayName ?? ""}
           onChange={(e) =>
             setProfile((p) => ({ ...p, displayName: e.target.value }))
           }
         />
+
+        <label className="label-field" htmlFor="profile-madhhab">
+          {locale === "tr" ? "Mezhep" : "Madhhab"}
+        </label>
+        <select
+          id="profile-madhhab"
+          className="input-field"
+          value={normalizeMadhhab(profile.madhhab)}
+          onChange={(e) =>
+            setProfile((p) => ({
+              ...p,
+              madhhab: e.target.value as Madhhab,
+              malikiMaxDays: p.malikiMaxDays ?? 15,
+            }))
+          }
+        >
+          {PROFILE_MADHHABS.map((m) => (
+            <option key={m} value={m}>
+              {madhhabLabel(m, locale)}
+            </option>
+          ))}
+        </select>
+
+        {malikiMaxEnabled && (
+          <div>
+            <label className="label-field" htmlFor="profile-maliki-max">
+              {locale === "tr" ? "En çok hayz günü (azami)" : "Maximum hayd days"}
+            </label>
+            <input
+              id="profile-maliki-max"
+              type="number"
+              min={1}
+              max={30}
+              className="input-field"
+              value={profile.malikiMaxDays ?? 15}
+              onChange={(e) =>
+                setProfile((p) => ({
+                  ...p,
+                  malikiMaxDays: Number(e.target.value),
+                }))
+              }
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              {locale === "tr"
+                ? "Yalnızca Maliki / Maliki taklidinde kullanılır (varsayılan 15)."
+                : "Used only for Maliki / following Maliki (default 15)."}
+            </p>
+          </div>
+        )}
+
         <label className="label-field">
           {locale === "tr" ? "Sahih hayz (gün)" : "Habitual hayd (days)"}
         </label>
         <input
           type="number"
           min={3}
-          max={10}
+          max={15}
           className="input-field"
           value={profile.habitHayzDays}
           onChange={(e) =>
