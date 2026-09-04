@@ -2,16 +2,16 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  /** Dış kutu boyutu (px class): sm=28, md=32, lg=40 */
+  /** Dış kutu boyutu: sm=32, md=40, lg=48 — standart header/sidebar markası */
   size?: "sm" | "md" | "lg";
   className?: string;
   priority?: boolean;
 };
 
 const SIZE = {
-  sm: { box: "h-7 w-7", px: 28 },
-  md: { box: "h-8 w-8", px: 32 },
-  lg: { box: "h-10 w-10", px: 40 },
+  sm: { box: "h-8 w-8", px: 32 },
+  md: { box: "h-10 w-10", px: 40 },
+  lg: { box: "h-12 w-12", px: 48 },
 } as const;
 
 /** Site markası — lotus / hilâl logosu */
@@ -20,7 +20,7 @@ export function BrandLogo({ size = "md", className, priority }: Props) {
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-[#F42566]/15 dark:bg-[#1C161B] dark:ring-[#F42566]/25",
+        "relative inline-flex shrink-0 items-center justify-center",
         s.box,
         className
       )}
@@ -30,7 +30,7 @@ export function BrandLogo({ size = "md", className, priority }: Props) {
         alt="Hayz"
         width={s.px}
         height={s.px}
-        className="h-[85%] w-[85%] object-contain"
+        className="h-full w-full object-contain"
         priority={priority}
       />
     </span>

@@ -1,6 +1,6 @@
 /* Hayz Takvimi — offline-first PWA service worker */
 const CACHE = "hayzapp-v1";
-const PRECACHE = ["/", "/manifest.json", "/icons/icon-192.svg", "/icons/icon-512.svg"];
+const PRECACHE = ["/", "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
