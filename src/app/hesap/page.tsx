@@ -34,8 +34,12 @@ function madhhabLabel(value: Madhhab, locale: "tr" | "en"): string {
 
 export default function HesapPage() {
   const { locale, setLocale } = useI18n();
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
+  const [displayNameDraft, setDisplayNameDraft] = useState("");
+  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile>(() => {
@@ -61,40 +65,141 @@ export default function HesapPage() {
       madhhab: normalizeMadhhab(p.madhhab),
       malikiMaxDays: p.malikiMaxDays ?? 15,
     });
+    if (p.email) setUserEmail(p.email);
     const sb = getSupabase();
     if (!sb) return;
     void sb.auth.getUser().then(({ data }) => {
-      setUserEmail(data.user?.email ?? null);
+      if (data.user?.email) setUserEmail(data.user.email);
     });
   }, []);
 
-  async function onAuth(e: FormEvent, mode: "signin" | "signup") {
+  async function onAuthSubmit(e: FormEvent) {
     e.preventDefault();
     setMessage(null);
-    const sb = getSupabase();
-    if (!sb) {
+
+    const mail = email.trim().toLowerCase();
+    if (!mail || !password) {
       setMessage(
         locale === "tr"
-          ? "Supabase yapılandırılmamış. Misafir modunda localStorage kullanılıyor. .env.local dosyasına NEXT_PUBLIC_SUPABASE_URL ve ANON_KEY ekleyin."
-          : "Supabase not configured. Guest mode uses localStorage. Add NEXT_PUBLIC_SUPABASE_URL and ANON_KEY to .env.local."
+          ? "E-posta ve şifre gerekli."
+          : "Email and password are required."
       );
       return;
     }
-    const result =
-      mode === "signin"
-        ? await sb.auth.signInWithPassword({ email, password })
-        : await sb.auth.signUp({ email, password });
-    if (result.error) {
-      setMessage(result.error.message);
+    if (password.length < 6) {
+      setMessage(
+        locale === "tr"
+          ? "Şifre en az 6 karakter olmalı."
+          : "Password must be at least 6 characters."
+      );
       return;
     }
-    setUserEmail(result.data.user?.email ?? email);
-    await syncGuestDataToCloud();
-    setMessage(
-      locale === "tr"
-        ? "Giriş başarılı. Yerel veriler senkronize edildi."
-        : "Signed in. Local data synced."
-    );
+    if (authMode === "signup" && password !== password2) {
+      setMessage(
+        locale === "tr"
+          ? "Şifreler eşleşmiyor."
+          : "Passwords do not match."
+      );
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const sb = getSupabase();
+
+      // Misafir / Supabase yok: yerel kayıt
+      if (!sb) {
+        if (authMode === "signup") {
+          const next: UserProfile = {
+            ...getGuestProfile(),
+            ...profile,
+            email: mail,
+            displayName:
+              displayNameDraft.trim() ||
+              profile.displayName ||
+              mail.split("@")[0] ||
+              "Kullanıcı",
+            updatedAt: new Date().toISOString(),
+          };
+          saveGuestProfile(next);
+          setProfile(next);
+          setUserEmail(mail);
+          setMessage(
+            locale === "tr"
+              ? "Kayıt oluşturuldu (misafir modu). Bilgileriniz bu cihazda saklandı."
+              : "Account created (guest mode). Your data is stored on this device."
+          );
+        } else {
+          const p = getGuestProfile();
+          if (p.email && p.email.toLowerCase() === mail) {
+            setUserEmail(mail);
+            setMessage(
+              locale === "tr"
+                ? "Misafir oturumu açıldı."
+                : "Guest session started."
+            );
+          } else {
+            setMessage(
+              locale === "tr"
+                ? "Supabase yapılandırılmamış. Önce «Kayıt ol» ile bu cihazda hesap oluşturun veya .env.local’e Supabase anahtarlarını ekleyin."
+                : "Supabase is not configured. Use Sign up first for a local account, or add Supabase keys to .env.local."
+            );
+          }
+        }
+        return;
+      }
+
+      const result =
+        authMode === "signin"
+          ? await sb.auth.signInWithPassword({ email: mail, password })
+          : await sb.auth.signUp({
+              email: mail,
+              password,
+              options: {
+                data: {
+                  display_name: displayNameDraft.trim() || undefined,
+                },
+              },
+            });
+
+      if (result.error) {
+        setMessage(result.error.message);
+        return;
+      }
+
+      const signedEmail = result.data.user?.email ?? mail;
+      setUserEmail(signedEmail);
+
+      const next: UserProfile = {
+        ...getGuestProfile(),
+        ...profile,
+        email: signedEmail,
+        displayName:
+          displayNameDraft.trim() ||
+          profile.displayName ||
+          signedEmail.split("@")[0] ||
+          null,
+        updatedAt: new Date().toISOString(),
+      };
+      saveGuestProfile(next);
+      setProfile(next);
+      await syncGuestDataToCloud();
+
+      setMessage(
+        authMode === "signup"
+          ? locale === "tr"
+            ? "Kayıt başarılı. E-posta onayı gerekebilir; ardından giriş yapabilirsiniz."
+            : "Sign up successful. Email confirmation may be required before signing in."
+          : locale === "tr"
+            ? "Giriş başarılı. Yerel veriler senkronize edildi."
+            : "Signed in. Local data synced."
+      );
+      setAuthMode("signin");
+      setPassword("");
+      setPassword2("");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function signOut() {
@@ -148,43 +253,141 @@ export default function HesapPage() {
               : "Guest session"}
         </p>
         {!userEmail ? (
-          <form
-            className="space-y-3"
-            onSubmit={(e) => void onAuth(e, "signin")}
-          >
-            <input
-              className="input-field"
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <input
-              className="input-field"
-              type="password"
-              placeholder={locale === "tr" ? "Şifre" : "Password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
-            <div className="flex flex-wrap gap-2">
-              <button type="submit" className="btn-primary touch-target">
+          <div className="space-y-3">
+            <div
+              className="grid grid-cols-2 gap-1 rounded-xl border border-rose-100/70 bg-rose-50/50 p-1 dark:border-[#2D222A] dark:bg-[#130F12]"
+              role="tablist"
+              aria-label={locale === "tr" ? "Hesap işlemi" : "Account action"}
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={authMode === "signin"}
+                className={
+                  authMode === "signin"
+                    ? "rounded-lg bg-[#F42566] px-3 py-2.5 text-sm font-semibold text-white shadow-sm"
+                    : "rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-[#1C161B]"
+                }
+                onClick={() => {
+                  setAuthMode("signin");
+                  setMessage(null);
+                }}
+              >
                 {locale === "tr" ? "Giriş yap" : "Sign in"}
               </button>
               <button
                 type="button"
-                className="btn-ghost touch-target"
-                onClick={(e) => {
-                  e.preventDefault();
-                  void onAuth(e as unknown as FormEvent, "signup");
+                role="tab"
+                aria-selected={authMode === "signup"}
+                className={
+                  authMode === "signup"
+                    ? "rounded-lg bg-[#F42566] px-3 py-2.5 text-sm font-semibold text-white shadow-sm"
+                    : "rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-[#1C161B]"
+                }
+                onClick={() => {
+                  setAuthMode("signup");
+                  setMessage(null);
                 }}
               >
                 {locale === "tr" ? "Kayıt ol" : "Sign up"}
               </button>
             </div>
-          </form>
+
+            <form className="space-y-3" onSubmit={(e) => void onAuthSubmit(e)}>
+              {authMode === "signup" && (
+                <div>
+                  <label className="label-field" htmlFor="signup-name">
+                    {locale === "tr" ? "Görünen ad (isteğe bağlı)" : "Display name (optional)"}
+                  </label>
+                  <input
+                    id="signup-name"
+                    className="input-field"
+                    value={displayNameDraft}
+                    onChange={(e) => setDisplayNameDraft(e.target.value)}
+                    placeholder={locale === "tr" ? "Adınız" : "Your name"}
+                    autoComplete="name"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="label-field" htmlFor="auth-email">
+                  Email
+                </label>
+                <input
+                  id="auth-email"
+                  className="input-field"
+                  type="email"
+                  placeholder="ornek@mail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+              <div>
+                <label className="label-field" htmlFor="auth-password">
+                  {locale === "tr" ? "Şifre" : "Password"}
+                </label>
+                <input
+                  id="auth-password"
+                  className="input-field"
+                  type="password"
+                  placeholder={locale === "tr" ? "En az 6 karakter" : "At least 6 characters"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete={
+                    authMode === "signup" ? "new-password" : "current-password"
+                  }
+                />
+              </div>
+              {authMode === "signup" && (
+                <div>
+                  <label className="label-field" htmlFor="auth-password2">
+                    {locale === "tr" ? "Şifre tekrar" : "Confirm password"}
+                  </label>
+                  <input
+                    id="auth-password2"
+                    className="input-field"
+                    type="password"
+                    placeholder={locale === "tr" ? "Şifreyi tekrar yazın" : "Repeat password"}
+                    value={password2}
+                    onChange={(e) => setPassword2(e.target.value)}
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                  />
+                </div>
+              )}
+              <button
+                type="submit"
+                className="btn-primary w-full touch-target"
+                disabled={busy}
+              >
+                {busy
+                  ? locale === "tr"
+                    ? "Lütfen bekleyin…"
+                    : "Please wait…"
+                  : authMode === "signup"
+                    ? locale === "tr"
+                      ? "Hesap oluştur"
+                      : "Create account"
+                    : locale === "tr"
+                      ? "Giriş yap"
+                      : "Sign in"}
+              </button>
+              <p className="text-[11px] leading-relaxed text-slate-400">
+                {authMode === "signup"
+                  ? locale === "tr"
+                    ? "Kayıt sonrası e-postanız Fıkıh Asistanı iletilerinde kullanılır."
+                    : "After signup, your email is used for Fiqh Assistant forwards."
+                  : locale === "tr"
+                    ? "Hesabınız yoksa üstten «Kayıt ol» sekmesini seçin."
+                    : "No account yet? Choose the Sign up tab above."}
+              </p>
+            </form>
+          </div>
         ) : (
           <button type="button" className="btn-ghost" onClick={() => void signOut()}>
             {locale === "tr" ? "Çıkış yap" : "Sign out"}
