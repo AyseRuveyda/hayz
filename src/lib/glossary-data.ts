@@ -39,7 +39,7 @@ export const glossaryTerms: GlossaryTerm[] = [
     termTR: "Âdet zamanı",
     termEN: "Habit period",
     definitionTR:
-      "Hayz kanı görüldüğü andan kesildiği güne kadar olan kanlı günlerin sayısıdır (hayızlı / âdetli günler). Bu zamanın en azı 3, en fazlası 10 gündür (Hanefî).",
+      "Hayz kanı görüldüğü andan kesildiği güne kadar olan kanlı günlerin sayısıdır (hayzlı / âdetli günler). Bu zamanın en azı 3, en fazlası 10 gündür (Hanefî).",
     definitionEN:
       "The count of bleeding days from first sight to cessation. In Hanafi: min 3, max 10 days.",
   },
@@ -130,7 +130,7 @@ export const glossaryTerms: GlossaryTerm[] = [
     termTR: "Âyise",
     termEN: "Ayisa (past menopause age)",
     definitionTR:
-      "Hayızdan kesilmiş yaşlı kadın. Âyise yaşı hicrî: Hanbelî 50, Hanefî 55, Şâfiî 60, Mâlikî 70. Bu yaşlardan sonra gelen kan hayz olmaz, istihâza olur.",
+      "Hayzdan kesilmiş yaşlı kadın. Âyise yaşı hicrî: Hanbelî 50, Hanefî 55, Şâfiî 60, Mâlikî 70. Bu yaşlardan sonra gelen kan hayz olmaz, istihâza olur.",
     definitionEN:
       "Woman past the school’s menopause age (Hijri): Hanbali 50, Hanafi 55, Shafi’i 60, Maliki 70. Later bleeding is istihadha, not hayd.",
   },

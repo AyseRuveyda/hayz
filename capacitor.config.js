@@ -14,6 +14,10 @@ const config = {
       style: "LIGHT",
       backgroundColor: "#FFF7F6",
     },
+    LocalNotifications: {
+      smallIcon: "ic_stat_icon_config_sample",
+      iconColor: "#F42566",
+    },
   },
 };
 

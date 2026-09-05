@@ -80,7 +80,7 @@ const TOPIC_CARDS: Array<{
       "oruc",
     ],
     answerTR:
-      "hayzdosya.pdf: İstihâza; 3 günden az, âdetten çok olup hayız olmayan kanlı günlerdir; özür kanı da denir. İstihâza olan günlerdeki namazlar kazâ edilir / istihâza günlerinde abdest alınıp namaz kılınır (özür hâlinde). 10 günden sonra gelen kan istihâza olur; gusletmeden abdest alıp namaz kılınır.",
+      "hayzdosya.pdf: İstihâza; 3 günden az, âdetten çok olup hayz olmayan kanlı günlerdir; özür kanı da denir. İstihâza olan günlerdeki namazlar kazâ edilir / istihâza günlerinde abdest alınıp namaz kılınır (özür hâlinde). 10 günden sonra gelen kan istihâza olur; gusletmeden abdest alıp namaz kılınır.",
   },
   {
     id: "ghusl",
@@ -117,7 +117,7 @@ const TOPIC_CARDS: Array<{
     id: "istimrar",
     keywords: ["istimrar", "surekli", "kesilmeden", "kursuf", "leke"],
     answerTR:
-      "hayzdosya.pdf: İstimrâr; kanın kesilmeden sürekli akmasıdır. Kürsüf üzerinde aylarca her gün kan lekesi gören kız her ay 10 gün hayızlı, sonra 20 gün istihâzalı kabul edilir. Daha önce âdeti belli olan böyle bir kadın ise âdetine göre hareket eder. Mâlikî’de kızlarda istimrârda 15 gün hayz, 15 gün istihâza kabul edilir.",
+      "hayzdosya.pdf: İstimrâr; kanın kesilmeden sürekli akmasıdır. Kürsüf üzerinde aylarca her gün kan lekesi gören kız her ay 10 gün hayzlı, sonra 20 gün istihâzalı kabul edilir. Daha önce âdeti belli olan böyle bir kadın ise âdetine göre hareket eder. Mâlikî’de kızlarda istimrârda 15 gün hayz, 15 gün istihâza kabul edilir.",
   },
   {
     id: "ayise",

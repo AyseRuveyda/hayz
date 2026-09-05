@@ -8,6 +8,9 @@ import {
   syncGuestDataToCloud,
 } from "@/lib/data-sync";
 import { useI18n } from "@/lib/i18n";
+import { NotificationSettingsCard } from "@/components/notifications/NotificationSettingsCard";
+import { FieldHint, FieldLabel } from "@/components/ui/FieldHint";
+import { fieldHint } from "@/lib/field-hints";
 import type { UserProfile } from "@/types/cycle";
 import type { Madhhab } from "@/types/fiqh";
 
@@ -296,9 +299,9 @@ export default function HesapPage() {
             <form className="space-y-3" onSubmit={(e) => void onAuthSubmit(e)}>
               {authMode === "signup" && (
                 <div>
-                  <label className="label-field" htmlFor="signup-name">
-                    {locale === "tr" ? "Görünen ad (isteğe bağlı)" : "Display name (optional)"}
-                  </label>
+                  <FieldLabel htmlFor="signup-name" hint={fieldHint("authDisplayName", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
+          {locale === "tr" ? "Görünen ad (isteğe bağlı)" : "Display name (optional)"}
+        </FieldLabel>
                   <input
                     id="signup-name"
                     className="input-field"
@@ -310,9 +313,9 @@ export default function HesapPage() {
                 </div>
               )}
               <div>
-                <label className="label-field" htmlFor="auth-email">
-                  Email
-                </label>
+                <FieldLabel htmlFor="auth-email" hint={fieldHint("authEmail", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
+          Email
+        </FieldLabel>
                 <input
                   id="auth-email"
                   className="input-field"
@@ -325,9 +328,9 @@ export default function HesapPage() {
                 />
               </div>
               <div>
-                <label className="label-field" htmlFor="auth-password">
-                  {locale === "tr" ? "Şifre" : "Password"}
-                </label>
+                <FieldLabel htmlFor="auth-password" hint={fieldHint("authPassword", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
+          {locale === "tr" ? "Şifre" : "Password"}
+        </FieldLabel>
                 <input
                   id="auth-password"
                   className="input-field"
@@ -344,9 +347,9 @@ export default function HesapPage() {
               </div>
               {authMode === "signup" && (
                 <div>
-                  <label className="label-field" htmlFor="auth-password2">
-                    {locale === "tr" ? "Şifre tekrar" : "Confirm password"}
-                  </label>
+                  <FieldLabel htmlFor="auth-password2" hint={fieldHint("authPasswordConfirm", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
+          {locale === "tr" ? "Şifre tekrar" : "Confirm password"}
+        </FieldLabel>
                   <input
                     id="auth-password2"
                     className="input-field"
@@ -399,9 +402,9 @@ export default function HesapPage() {
         <p className="text-sm font-semibold">
           {locale === "tr" ? "Profil tercihleri" : "Profile preferences"}
         </p>
-        <label className="label-field" htmlFor="displayName">
+        <FieldLabel htmlFor="displayName" hint={fieldHint("profileDisplayName", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
           {locale === "tr" ? "Görünen ad" : "Display name"}
-        </label>
+        </FieldLabel>
         <input
           id="displayName"
           className="input-field"
@@ -411,9 +414,9 @@ export default function HesapPage() {
           }
         />
 
-        <label className="label-field" htmlFor="profile-email">
+        <FieldLabel htmlFor="profile-email" hint={fieldHint("profileContactEmail", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
           {locale === "tr" ? "İletişim e-postası" : "Contact email"}
-        </label>
+        </FieldLabel>
         <input
           id="profile-email"
           type="email"
@@ -430,9 +433,9 @@ export default function HesapPage() {
             : "Used when forwarding unanswered assistant questions to destek@hayztakvimi.app."}
         </p>
 
-        <label className="label-field" htmlFor="profile-madhhab">
+        <FieldLabel htmlFor="profile-madhhab" hint={fieldHint("profileMadhhab", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
           {locale === "tr" ? "Mezhep" : "Madhhab"}
-        </label>
+        </FieldLabel>
         <select
           id="profile-madhhab"
           className="input-field"
@@ -454,9 +457,9 @@ export default function HesapPage() {
 
         {malikiMaxEnabled && (
           <div>
-            <label className="label-field" htmlFor="profile-maliki-max">
-              {locale === "tr" ? "En çok hayz günü (azami)" : "Maximum hayd days"}
-            </label>
+            <FieldLabel htmlFor="profile-maliki-max" hint={fieldHint("profileMalikiMax", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
+          {locale === "tr" ? "En çok hayz günü (azami)" : "Maximum hayd days"}
+        </FieldLabel>
             <input
               id="profile-maliki-max"
               type="number"
@@ -479,9 +482,9 @@ export default function HesapPage() {
           </div>
         )}
 
-        <label className="label-field">
+        <FieldLabel as="label" hint={fieldHint("profileHabitHayz", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
           {locale === "tr" ? "Sahih hayz (gün)" : "Habitual hayd (days)"}
-        </label>
+        </FieldLabel>
         <input
           type="number"
           min={3}
@@ -495,9 +498,9 @@ export default function HesapPage() {
             }))
           }
         />
-        <label className="label-field">
+        <FieldLabel as="label" hint={fieldHint("profileHabitPurity", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
           {locale === "tr" ? "Sahih temizlik (gün)" : "Habitual purity (days)"}
-        </label>
+        </FieldLabel>
         <input
           type="number"
           min={15}
@@ -514,6 +517,8 @@ export default function HesapPage() {
           {locale === "tr" ? "Kaydet" : "Save"}
         </button>
       </div>
+
+      <NotificationSettingsCard />
 
       {message && (
         <p className="rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:bg-sky-950/40 dark:text-sky-100">

@@ -8,12 +8,14 @@ import { ComparisonRuler } from "@/components/calculator/ComparisonRuler";
 import { ResultCard } from "@/components/calculator/ResultCard";
 import { useChatDrawer } from "@/components/chat/ChatContext";
 import { DateTimeField } from "@/components/ui/DateTimeField";
+import { FieldHint, FieldLabel } from "@/components/ui/FieldHint";
+import { fieldHint } from "@/lib/field-hints";
 import { buildComparisonChart } from "@/lib/comparison-chart";
 import { saveCycle, saveQada } from "@/lib/data-sync";
 import { analyzeSahihAy, calculateFiqhStatus, evaluateCycleWithHabit } from "@/lib/fiqh-engine";
 import { evaluateHabitChange } from "@/lib/habit-change";
 import { useI18n } from "@/lib/i18n";
-import { getGuestProfile, saveGuestProfile, uid } from "@/lib/local-store";
+import { getGuestProfile, saveGuestProfile, setOpenBleedStart, uid } from "@/lib/local-store";
 import {
   dateTimePartsToIso,
   defaultDateTimeParts,
@@ -352,6 +354,14 @@ export function CalculatorForm() {
         updatedAt: now,
       });
 
+      // Açık kanama: sürekli kanama veya bitiş ≈ şimdi ise hatırlatıcı için sakla
+      {
+        const endMs = new Date(endIso).getTime();
+        const nearNow = Math.abs(Date.now() - endMs) < 6 * 3_600_000;
+        if (isContinuousBleeding || nearNow) setOpenBleedStart(startIso);
+        else setOpenBleedStart(null);
+      }
+
       if (next.qadaPrayersCount > 0) {
         await saveQada({
           id: uid(),
@@ -463,6 +473,8 @@ export function CalculatorForm() {
               value={purityStartParts}
               onChange={setPurityStartParts}
               timeHint={timeHint}
+              info={fieldHint("purityStart", locale)}
+              infoLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}
             />
             <DateTimeField
               idPrefix="start"
@@ -470,6 +482,8 @@ export function CalculatorForm() {
               value={startParts}
               onChange={setStartParts}
               timeHint={timeHint}
+              info={fieldHint("bleedStart", locale)}
+              infoLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}
             />
             <DateTimeField
               idPrefix="end"
@@ -477,15 +491,17 @@ export function CalculatorForm() {
               value={endParts}
               onChange={setEndParts}
               timeHint={timeHint}
+              info={fieldHint("bleedEnd", locale)}
+              infoLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}
             />
           </div>
 
           {/* ── Mezhep + Mâlikî max (sadece Maliki seçiliyse) ── */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="label-field" htmlFor="madhhab">
+              <FieldLabel htmlFor="madhhab" hint={fieldHint("madhhab", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
                 {t.calculator.madhhab}
-              </label>
+              </FieldLabel>
               <select
                 id="madhhab"
                 className="input-field"
@@ -510,9 +526,9 @@ export function CalculatorForm() {
 
             {malikiControlsEnabled && (
               <div>
-                <label className="label-field" htmlFor="malikiMaxDays">
+                <FieldLabel htmlFor="malikiMaxDays" hint={fieldHint("maxHayzDays", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
                   {t.calculator.maxHayzDays}
-                </label>
+                </FieldLabel>
                 <input
                   id="malikiMaxDays"
                   type="number"
@@ -544,7 +560,10 @@ export function CalculatorForm() {
                 onChange={(e) => setIsContinuousBleeding(e.target.checked)}
                 className="h-4 w-4 rounded border-rose-200 text-[#F42566] focus:ring-[#F42566]/30"
               />
-              {t.calculator.istimrar}
+              <span className="inline-flex flex-1 items-center gap-1.5">
+                {t.calculator.istimrar}
+                <FieldHint text={fieldHint("istimrar", locale)} label={locale === "tr" ? "Alan bilgisi" : "Field info"} />
+              </span>
             </label>
             <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-rose-100/70 bg-white px-3 py-2.5 text-sm dark:border-[#2D222A] dark:bg-[#130F12]">
               <input
@@ -553,7 +572,10 @@ export function CalculatorForm() {
                 onChange={(e) => setIsFirstPeriod(e.target.checked)}
                 className="h-4 w-4 rounded border-rose-200 text-[#F42566] focus:ring-[#F42566]/30"
               />
-              {t.calculator.firstPeriod}
+              <span className="inline-flex flex-1 items-center gap-1.5">
+                {t.calculator.firstPeriod}
+                <FieldHint text={fieldHint("firstPeriod", locale)} label={locale === "tr" ? "Alan bilgisi" : "Field info"} />
+              </span>
             </label>
           </div>
 
@@ -590,6 +612,8 @@ export function CalculatorForm() {
                   value={prevHayzStartParts}
                   onChange={setPrevHayzStartParts}
                   timeHint={timeHint}
+                  info={fieldHint("prevHayzStart", locale)}
+                  infoLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}
                 />
                 <DateTimeField
                   idPrefix="prev-hayz-end"
@@ -605,6 +629,8 @@ export function CalculatorForm() {
                     setPurityStartParts(v);
                   }}
                   timeHint={timeHint}
+                  info={fieldHint("prevHayzEnd", locale)}
+                  infoLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}
                 />
                 <DateTimeField
                   idPrefix="prev-tuhur-start"
@@ -620,6 +646,8 @@ export function CalculatorForm() {
                     setPrevHayzEndParts(v);
                   }}
                   timeHint={timeHint}
+                  info={fieldHint("prevPurityStart", locale)}
+                  infoLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}
                 />
                 <div className="rounded-xl border border-amber-200/80 bg-white/70 p-3 text-xs text-amber-900 dark:border-amber-800/40 dark:bg-[#130F12] dark:text-amber-100">
                   <p className="font-semibold">

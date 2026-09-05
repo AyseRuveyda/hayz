@@ -3,6 +3,8 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { FieldLabel } from "@/components/ui/FieldHint";
+import { fieldHint } from "@/lib/field-hints";
 import { FIQH_COLORS, type DischargeType, type KursufState, type PhysicalSymptom } from "@/types/cycle";
 import { cn } from "@/lib/utils";
 
@@ -94,9 +96,9 @@ export function DailyLogModal({ open, date, initial, onClose, onSave }: Props) {
           </button>
         </div>
 
-        <p className="label-field">
+        <FieldLabel as="p" className="mb-2" hint={fieldHint("dischargeType", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
           {locale === "tr" ? "Akıntı türü" : "Discharge type"}
-        </p>
+        </FieldLabel>
         <div className="mb-4 grid grid-cols-2 gap-2">
           {DISCHARGES.map((d) => (
             <button
@@ -119,9 +121,9 @@ export function DailyLogModal({ open, date, initial, onClose, onSave }: Props) {
           ))}
         </div>
 
-        <p className="label-field">
+        <FieldLabel as="p" className="mb-2" hint={fieldHint("kursufState", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
           {locale === "tr" ? "Kürsüf durumu" : "Kursuf state"}
-        </p>
+        </FieldLabel>
         <div className="mb-4 grid grid-cols-2 gap-2">
           {(["WET", "DRY"] as KursufState[]).map((k) => (
             <button
@@ -146,9 +148,9 @@ export function DailyLogModal({ open, date, initial, onClose, onSave }: Props) {
           ))}
         </div>
 
-        <p className="label-field">
+        <FieldLabel as="p" className="mb-2" hint={fieldHint("physicalSymptoms", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
           {locale === "tr" ? "Fiziksel belirtiler" : "Physical symptoms"}
-        </p>
+        </FieldLabel>
         <div className="mb-4 flex flex-wrap gap-2">
           {SYMPTOMS.map((s) => (
             <button
@@ -167,9 +169,9 @@ export function DailyLogModal({ open, date, initial, onClose, onSave }: Props) {
           ))}
         </div>
 
-        <label className="label-field" htmlFor="daily-notes">
+        <FieldLabel htmlFor="daily-notes" hint={fieldHint("dailyNotes", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
           {locale === "tr" ? "Not" : "Notes"}
-        </label>
+        </FieldLabel>
         <textarea
           id="daily-notes"
           className="input-field mb-4 min-h-[80px] resize-y"

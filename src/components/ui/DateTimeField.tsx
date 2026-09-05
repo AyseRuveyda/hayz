@@ -6,6 +6,7 @@ import {
   normalizeTimeInput,
 } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { FieldLabel } from "@/components/ui/FieldHint";
 
 type Props = {
   idPrefix: string;
@@ -14,6 +15,11 @@ type Props = {
   onChange: (value: DateTimeParts) => void;
   className?: string;
   timeHint?: string;
+  /** Explanation shown next to the field label via info icon */
+  info?: string;
+  infoLabel?: string;
+  dateLabel?: string;
+  timeLabel?: string;
 };
 
 export function DateTimeField({
@@ -23,14 +29,24 @@ export function DateTimeField({
   onChange,
   className,
   timeHint = "24 saat (ör. 14:30)",
+  info,
+  infoLabel,
+  dateLabel = "Tarih",
+  timeLabel = "Saat",
 }: Props) {
   return (
     <div className={cn("space-y-2", className)}>
-      <span className="label-field">{label}</span>
+      {info ? (
+        <FieldLabel as="span" hint={info} hintLabel={infoLabel} className="mb-0">
+          {label}
+        </FieldLabel>
+      ) : (
+        <span className="label-field">{label}</span>
+      )}
       <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
         <div>
           <label className="sr-only" htmlFor={`${idPrefix}-date`}>
-            Tarih
+            {dateLabel}
           </label>
           <input
             id={`${idPrefix}-date`}
@@ -43,7 +59,7 @@ export function DateTimeField({
         </div>
         <div>
           <label className="sr-only" htmlFor={`${idPrefix}-time`}>
-            Saat
+            {timeLabel}
           </label>
           <input
             id={`${idPrefix}-time`}

@@ -8,6 +8,8 @@ import { KnowledgeCard } from "@/components/library/KnowledgeCard";
 import { glossaryTerms } from "@/lib/glossary-data";
 import { knowledgeItems } from "@/lib/knowledge-data";
 import { useI18n } from "@/lib/i18n";
+import { FieldHint, FieldLabel } from "@/components/ui/FieldHint";
+import { fieldHint } from "@/lib/field-hints";
 import type { KnowledgeCategoryKey } from "@/types/fiqh";
 
 const VALID_CATS: KnowledgeCategoryKey[] = [
@@ -89,14 +91,20 @@ function BilgilerContent() {
         </p>
       </div>
 
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          className="input-field pl-10"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t.knowledge.search}
-        />
+      <div className="space-y-1.5">
+        <FieldLabel as="p" hint={fieldHint("knowledgeSearch", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
+          {locale === "tr" ? "Bilgi ara" : "Search knowledge"}
+        </FieldLabel>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            className="input-field pl-10"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t.knowledge.search}
+            aria-label={locale === "tr" ? "Bilgi ara" : "Search knowledge"}
+          />
+        </div>
       </div>
 
       <CategoryFilter value={category} onChange={setCategory} />

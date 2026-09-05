@@ -10,6 +10,8 @@ import {
   unknownAnswerMessage,
 } from "@/lib/fiqh-assistant";
 import { useI18n } from "@/lib/i18n";
+import { FieldHint } from "@/components/ui/FieldHint";
+import { fieldHint } from "@/lib/field-hints";
 import { getGuestProfile } from "@/lib/local-store";
 import { cn } from "@/lib/utils";
 
@@ -174,13 +176,20 @@ export function FiqhChatDrawer() {
           onSubmit={onSubmit}
           className="flex items-center gap-2 border-t border-rose-100/70 p-4 dark:border-[#2D222A]"
         >
-          <input
-            className="input-field"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={t.chat.placeholder}
-            disabled={busy}
-          />
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <input
+              className="input-field min-w-0 flex-1"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={t.chat.placeholder}
+              disabled={busy}
+              aria-label={locale === "tr" ? "Soru" : "Question"}
+            />
+            <FieldHint
+              text={fieldHint("chatQuestion", locale)}
+              label={locale === "tr" ? "Alan bilgisi" : "Field info"}
+            />
+          </div>
           <button
             type="submit"
             className="btn-primary shrink-0 px-3"
