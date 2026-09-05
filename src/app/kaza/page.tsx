@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { QadaTracker } from "@/components/tracker/QadaTracker";
 import { loadCycles, loadQada, saveQada } from "@/lib/data-sync";
 import { useI18n } from "@/lib/i18n";
+import { FieldHint, FieldLabel } from "@/components/ui/FieldHint";
+import { fieldHint } from "@/lib/field-hints";
 import { uid } from "@/lib/local-store";
 import { countHayzOverlapWithRange } from "@/lib/calendar-map";
 import type { CycleRecord, QadaItem } from "@/types/cycle";
@@ -93,18 +95,30 @@ export default function KazaPage() {
             : "Ramadan hayd overlap (manual date range)"}
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <input
-            type="date"
-            className="input-field"
-            value={ramadanStart}
-            onChange={(e) => setRamadanStart(e.target.value)}
-          />
-          <input
-            type="date"
-            className="input-field"
-            value={ramadanEnd}
-            onChange={(e) => setRamadanEnd(e.target.value)}
-          />
+          <div>
+            <FieldLabel htmlFor="ramadan-start" hint={fieldHint("ramadanStart", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
+              {locale === "tr" ? "Başlangıç tarihi" : "Start date"}
+            </FieldLabel>
+            <input
+              id="ramadan-start"
+              type="date"
+              className="input-field"
+              value={ramadanStart}
+              onChange={(e) => setRamadanStart(e.target.value)}
+            />
+          </div>
+          <div>
+            <FieldLabel htmlFor="ramadan-end" hint={fieldHint("ramadanEnd", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
+              {locale === "tr" ? "Bitiş tarihi" : "End date"}
+            </FieldLabel>
+            <input
+              id="ramadan-end"
+              type="date"
+              className="input-field"
+              value={ramadanEnd}
+              onChange={(e) => setRamadanEnd(e.target.value)}
+            />
+          </div>
         </div>
         <button
           type="button"

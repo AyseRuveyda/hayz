@@ -4,6 +4,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Check, Copy, Mail, Send } from "lucide-react";
 import { CONTACT_EMAIL } from "@/lib/fiqh-assistant";
 import { useI18n } from "@/lib/i18n";
+import { FieldHint, FieldLabel } from "@/components/ui/FieldHint";
+import { fieldHint } from "@/lib/field-hints";
 import { getGuestProfile, saveGuestProfile, uid } from "@/lib/local-store";
 import { cn } from "@/lib/utils";
 
@@ -181,9 +183,9 @@ export default function IletisimPage() {
 
       <form onSubmit={onSubmit} className="card-surface space-y-4 p-5">
         <div className="space-y-1.5">
-          <label className="label-field" htmlFor="contact-email">
+          <FieldLabel htmlFor="contact-email" hint={fieldHint("contactEmail", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
             {locale === "tr" ? "Sizin e-postanız" : "Your email"}
-          </label>
+          </FieldLabel>
           <input
             id="contact-email"
             type="email"
@@ -197,9 +199,9 @@ export default function IletisimPage() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="label-field" htmlFor="contact-question">
+          <FieldLabel htmlFor="contact-question" hint={fieldHint("contactMessage", locale)} hintLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}>
             {locale === "tr" ? "Sorunuz / mesajınız" : "Your question / message"}
-          </label>
+          </FieldLabel>
           <textarea
             id="contact-question"
             required
