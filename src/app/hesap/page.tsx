@@ -8,6 +8,7 @@ import {
   syncGuestDataToCloud,
 } from "@/lib/data-sync";
 import { useI18n } from "@/lib/i18n";
+import { NotificationSettingsCard } from "@/components/notifications/NotificationSettingsCard";
 import { FieldHint, FieldLabel } from "@/components/ui/FieldHint";
 import { fieldHint } from "@/lib/field-hints";
 import type { UserProfile } from "@/types/cycle";
@@ -516,6 +517,8 @@ export default function HesapPage() {
           {locale === "tr" ? "Kaydet" : "Save"}
         </button>
       </div>
+
+      <NotificationSettingsCard />
 
       {message && (
         <p className="rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:bg-sky-950/40 dark:text-sky-100">

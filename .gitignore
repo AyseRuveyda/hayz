@@ -1,9 +1,10 @@
+dist
+.DS_Store
+.env*.local
+*.log
+.next
 next-env.d.ts
 node_modules
-.next
 out
-dist
-*.log
-.env*.local
-.DS_Store
+tsconfig.tsbuildinfo
 .vercel

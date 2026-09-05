@@ -11,6 +11,8 @@ const KEYS = {
   cycles: "hayzapp.guest.cycles",
   spotting: "hayzapp.guest.spotting",
   qada: "hayzapp.guest.qada",
+  /** Açık (bitişi girilmemiş) kanama başlangıcı ISO. */
+  openBleed: "hayzapp.guest.openBleedStart",
 } as const;
 
 function readJson<T>(key: string, fallback: T): T {
@@ -90,6 +92,18 @@ export function upsertGuestSpotting(log: DailySpottingLog) {
   logs.sort((a, b) => b.date.localeCompare(a.date));
   saveGuestSpotting(logs);
   return logs;
+}
+
+export function getOpenBleedStart(): string | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(KEYS.openBleed);
+  return raw && raw.length > 0 ? raw : null;
+}
+
+export function setOpenBleedStart(iso: string | null) {
+  if (typeof window === "undefined") return;
+  if (!iso) window.localStorage.removeItem(KEYS.openBleed);
+  else window.localStorage.setItem(KEYS.openBleed, iso);
 }
 
 export function getGuestQada(): QadaItem[] {

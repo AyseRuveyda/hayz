@@ -15,7 +15,7 @@ import { saveCycle, saveQada } from "@/lib/data-sync";
 import { analyzeSahihAy, calculateFiqhStatus, evaluateCycleWithHabit } from "@/lib/fiqh-engine";
 import { evaluateHabitChange } from "@/lib/habit-change";
 import { useI18n } from "@/lib/i18n";
-import { getGuestProfile, saveGuestProfile, uid } from "@/lib/local-store";
+import { getGuestProfile, saveGuestProfile, setOpenBleedStart, uid } from "@/lib/local-store";
 import {
   dateTimePartsToIso,
   defaultDateTimeParts,
@@ -353,6 +353,14 @@ export function CalculatorForm() {
         createdAt: now,
         updatedAt: now,
       });
+
+      // Açık kanama: sürekli kanama veya bitiş ≈ şimdi ise hatırlatıcı için sakla
+      {
+        const endMs = new Date(endIso).getTime();
+        const nearNow = Math.abs(Date.now() - endMs) < 6 * 3_600_000;
+        if (isContinuousBleeding || nearNow) setOpenBleedStart(startIso);
+        else setOpenBleedStart(null);
+      }
 
       if (next.qadaPrayersCount > 0) {
         await saveQada({
