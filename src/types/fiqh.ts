@@ -105,6 +105,17 @@ export interface CalculationResult {
   overlapRule?: OverlapRule | null;
   /** Kaza gereken istihâze gün sayısı. */
   kazayaKalanGunler?: number;
+  /**
+   * Önceki sahih âdet günleriyle çakışan kanama süresi (saat).
+   * Takvim günü değil; gün içi saat kesişimi toplanır.
+   */
+  overlapHours?: number;
+  /**
+   * İstihâze / kaza yükümlülüğünün başladığı an (ISO).
+   * Rastlamayanda: kanama başlangıcı + hayz süresi.
+   * Rastlayanda: ilk istihâze diliminin başı.
+   */
+  qadaStartAt?: string | null;
 }
 
 // ---------------------------------------------------------------------------

@@ -141,12 +141,31 @@ function listBleedingCalendarDays(start: Date, end: Date): Date[] {
   return days;
 }
 
+function startOfLocalDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+}
+
+function endOfLocalDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0);
+}
+
+/** [rangeStart, rangeEnd) ile takvim gününün kesişen saatleri. */
+function hoursIntersectingDay(
+  day: Date,
+  rangeStart: Date,
+  rangeEnd: Date
+): number {
+  const a = Math.max(rangeStart.getTime(), startOfLocalDay(day).getTime());
+  const b = Math.min(rangeEnd.getTime(), endOfLocalDay(day).getTime());
+  return Math.max(0, (b - a) / MS_PER_HOUR);
+}
+
 function habitDayOfMonthSet(
   habitStartDay: number,
   habitHayzDays: number
 ): Set<number> {
   const set = new Set<number>();
-  const days = Math.max(1, Math.round(habitHayzDays));
+  const days = Math.max(1, Math.ceil(habitHayzDays - 1e-9));
   for (let j = 0; j < days; j++) {
     set.add(((habitStartDay - 1 + j) % 31) + 1);
   }
@@ -154,36 +173,53 @@ function habitDayOfMonthSet(
 }
 
 /**
- * previousPurityStart (= önceki hayz bitişi) ve habitHayzDays ile
- * önceki âdetin ay-içi gün kümesini ve başlangıç gününü üretir.
+ * previousPurityStart (= önceki hayz bitişi, saat korunur) ve habitHayzDays ile
+ * önceki âdetin ay-içi gün kümesini üretir. Öğlene yuvarlama yapılmaz.
  */
 function resolveHabitDom(
   input: CalculationInput,
   purityStart?: Date
-): { habitStartDay: number; habitDom: Set<number> } | null {
-  const habitDays = Math.max(0, input.habitHayzDays);
-  if (habitDays < 1) return null;
+): { habitStartDay: number; habitDom: Set<number>; habitHours: number } | null {
+  const habitHours = getHabitHayzHours(input);
+  if (habitHours < HANAFI_MIN_HAYZ_HOURS && input.habitHayzDays < 1) return null;
 
   if (input.habitCycleStartDay && input.habitCycleStartDay >= 1) {
+    const days = Math.max(1, Math.ceil(input.habitHayzDays - 1e-9));
     return {
       habitStartDay: input.habitCycleStartDay,
-      habitDom: habitDayOfMonthSet(input.habitCycleStartDay, habitDays),
+      habitDom: habitDayOfMonthSet(input.habitCycleStartDay, days),
+      habitHours: habitHours || daysToHours(days),
     };
   }
 
   if (purityStart) {
-    // Önceki hayz: purityStart - habitDays … purityStart
+    // Önceki hayz: [purityStart - habitHours, purityStart] — gerçek saatler
     const prevEnd = new Date(purityStart);
-    prevEnd.setHours(12, 0, 0, 0);
-    const prevStart = new Date(prevEnd);
-    prevStart.setDate(prevStart.getDate() - Math.max(1, Math.round(habitDays)) + 1);
+    const prevStart = addHours(
+      prevEnd,
+      -(habitHours > 0
+        ? habitHours
+        : daysToHours(Math.max(1, input.habitHayzDays)))
+    );
     const set = new Set<number>();
-    const cur = new Date(prevStart);
-    while (cur <= prevEnd) {
-      set.add(cur.getDate());
-      cur.setDate(cur.getDate() + 1);
+    const cur = startOfLocalDay(prevStart);
+    const walkEnd =
+      prevEnd.getTime() > startOfLocalDay(prevEnd).getTime()
+        ? startOfLocalDay(prevEnd)
+        : addHours(startOfLocalDay(prevEnd), -HOURS_PER_DAY);
+    for (
+      let t = cur.getTime();
+      t <= walkEnd.getTime();
+      t += HOURS_PER_DAY * MS_PER_HOUR
+    ) {
+      set.add(new Date(t).getDate());
     }
-    return { habitStartDay: prevStart.getDate(), habitDom: set };
+    if (set.size === 0) set.add(prevEnd.getDate());
+    return {
+      habitStartDay: prevStart.getDate(),
+      habitDom: set,
+      habitHours: habitHours || daysToHours(set.size),
+    };
   }
 
   return null;
@@ -197,14 +233,22 @@ type HanafiSplitResult = {
   overlapRule: OverlapRule;
   daySchedule: DayScheduleEntry[];
   kazayaKalanGunler: number;
+  /** Saat hassas çakışma (rastlaşma) süresi. */
+  overlapHours: number;
+  /** İstihâze / kaza başlangıç anı. */
+  qadaStartAt: string | null;
 };
 
 /**
  * 10 günü aşan kanamada Hanefî rastlayan/rastlamayan kaidesi + gün gün çizelge.
  *
- * Kural A (Rastlayan): önceki sahih âdet günleriyle ≥3 gün çakışma →
- *   çakışan günler hayz (azami 10), diğerleri istihâze.
- * Kural B (Rastlamayan): çakışma <3 → başlangıçtan habit süresi kadar hayz, kalanı istihâze.
+ * Rastleşme süresi: önceki sahih âdetin ay-günü kümesiyle çakışan kanama
+ * saatlerinin toplamı (gün içi kısmi saatler dahil).
+ *
+ * Kural A (Rastlayan): çakışma ≥ 72 saat (3 gün) → çakışan saatler hayz (azami 10g),
+ *   diğerleri istihâze.
+ * Kural B (Rastlamayan): çakışma < 72 saat → başlangıçtan habit süresi kadar hayz,
+ *   kalanı istihâze. Çakışma süresi yine raporlanır.
  */
 function splitExceedingHanafi(
   input: CalculationInput,
@@ -214,43 +258,57 @@ function splitExceedingHanafi(
   maxHayzHours: number
 ): HanafiSplitResult {
   const habitHours = getHabitHayzHours(input);
-  const habitDays = Math.max(
-    OVERLAP_MIN_DAYS,
-    Math.min(
-      hoursToDays(maxHayzHours),
-      input.habitHayzDays > 0 ? input.habitHayzDays : hoursToDays(maxHayzHours)
-    )
-  );
   const purityStart = input.previousPurityStartDate
     ? parseDate(input.previousPurityStartDate)
     : undefined;
   const habitInfo = resolveHabitDom(input, purityStart);
   const bleedingDays = listBleedingCalendarDays(startDate, endDate);
 
-  let overlapCount = 0;
+  // Saat hassas çakışma: habit DOM’una düşen kanama saatleri
+  let overlapHours = 0;
+  const dayOverlapHours: number[] = [];
   if (habitInfo) {
     for (const d of bleedingDays) {
-      if (habitInfo.habitDom.has(d.getDate())) overlapCount++;
+      const h = habitInfo.habitDom.has(d.getDate())
+        ? hoursIntersectingDay(d, startDate, endDate)
+        : 0;
+      dayOverlapHours.push(h);
+      overlapHours += h;
     }
-  } else if (input.habitCycleStartDay && input.habitHayzDays >= OVERLAP_MIN_DAYS) {
-    overlapCount = countCalendarOverlapDays(
-      startDate,
-      hoursToDays(totalHours),
-      input.habitCycleStartDay,
-      input.habitHayzDays
-    );
+  } else {
+    for (let i = 0; i < bleedingDays.length; i++) dayOverlapHours.push(0);
   }
 
-  const useRastlayan = overlapCount >= OVERLAP_MIN_DAYS && Boolean(habitInfo);
+  const useRastlayan =
+    overlapHours >= daysToHours(OVERLAP_MIN_DAYS) && Boolean(habitInfo);
   const maxHayzDays = Math.floor(hoursToDays(maxHayzHours));
   const schedule: DayScheduleEntry[] = [];
+  const overlapFmt = formatDuration(overlapHours);
 
   if (useRastlayan && habitInfo) {
-    let hayzAssigned = 0;
-    for (const d of bleedingDays) {
-      const overlaps = habitInfo.habitDom.has(d.getDate());
-      const asHayz = overlaps && hayzAssigned < maxHayzDays;
-      if (asHayz) hayzAssigned++;
+    let hayzHoursAssigned = 0;
+    let qadaStartAt: string | null = null;
+    let lastHayzEnd: Date | null = null;
+
+    for (let i = 0; i < bleedingDays.length; i++) {
+      const d = bleedingDays[i];
+      const dayH = dayOverlapHours[i];
+      const room = maxHayzHours - hayzHoursAssigned;
+      const take = dayH > 0 && room > 0 ? Math.min(dayH, room) : 0;
+      const asHayz = take > 0;
+
+      if (asHayz) {
+        hayzHoursAssigned += take;
+        // Bu gündeki hayz diliminin bitişi
+        const dayStart = Math.max(startDate.getTime(), startOfLocalDay(d).getTime());
+        lastHayzEnd = new Date(dayStart + take * MS_PER_HOUR);
+      } else if (qadaStartAt == null) {
+        const istiStart = new Date(
+          Math.max(startDate.getTime(), startOfLocalDay(d).getTime())
+        );
+        qadaStartAt = istiStart.toISOString();
+      }
+
       schedule.push({
         date: toDateKey(d),
         kind: asHayz ? "HAYZ" : "ISTIHADHA",
@@ -259,13 +317,15 @@ function splitExceedingHanafi(
       });
     }
 
-    const hayzHours = Math.min(
-      daysToHours(hayzAssigned),
-      totalHours,
-      maxHayzHours
-    );
+    // İlk satırlar hayz ise kaza, ilk istihâze anında başlar
+    if (qadaStartAt == null && lastHayzEnd && lastHayzEnd < endDate) {
+      qadaStartAt = lastHayzEnd.toISOString();
+    }
+
+    const hayzHours = Math.min(hayzHoursAssigned, totalHours, maxHayzHours);
     const istihadhaHours = Math.max(0, totalHours - hayzHours);
     const kazayaKalanGunler = schedule.filter((s) => s.kind === "ISTIHADHA").length;
+    const hayzDaysAssigned = schedule.filter((s) => s.kind === "HAYZ").length;
 
     return {
       hayzHours,
@@ -273,12 +333,14 @@ function splitExceedingHanafi(
       overlapRule: "RASTLAYAN",
       daySchedule: schedule,
       kazayaKalanGunler,
-      noteTR: `Rastlayan kaidesi: yeni kanamada önceki sahih âdet günleriyle ${overlapCount} gün çakışma var (≥3). Çakışan ${hayzAssigned} gün hayz, kalan ${kazayaKalanGunler} gün istihâze sayıldı. İstihâze günlerinin namazları kaza edilmelidir (tahmini ${kazayaKalanGunler * PRAYERS_PER_DAY} vakit).`,
-      noteEN: `Overlap rule: ${overlapCount} days matched the previous habit (≥3). ${hayzAssigned} day(s) hayd, ${kazayaKalanGunler} day(s) istihadha. Makeup prayers approx. ${kazayaKalanGunler * PRAYERS_PER_DAY}.`,
+      overlapHours,
+      qadaStartAt,
+      noteTR: `Rastlayan kaidesi: önceki sahih âdet günleriyle ${overlapFmt} çakışma var (≥3 gün / 72 saat). Çakışan ${formatDuration(hayzHours)} (${hayzDaysAssigned} takvim günü) hayz; kalan ${kazayaKalanGunler} gün istihâze. İstihâze namazları kaza (tahmini ${kazayaKalanGunler * PRAYERS_PER_DAY} vakit)${qadaStartAt ? `; kaza başlangıcı: ${new Date(qadaStartAt).toLocaleString("tr-TR")}` : ""}.`,
+      noteEN: `Overlap rule: ${overlapFmt} matched the previous habit (≥3 days / 72h). ${formatDuration(hayzHours)} hayd (${hayzDaysAssigned} calendar day(s)); ${kazayaKalanGunler} day(s) istihadha. Makeup approx. ${kazayaKalanGunler * PRAYERS_PER_DAY}${qadaStartAt ? `; qada starts: ${new Date(qadaStartAt).toLocaleString("en-GB")}` : ""}.`,
     };
   }
 
-  // Kural B — Rastlamayan
+  // Kural B — Rastlamayan (çakışma < 72 saat; süre yine raporlanır)
   const effectiveHabitHours = Math.min(
     Math.max(habitHours > 0 ? habitHours : HANAFI_MIN_HAYZ_HOURS, HANAFI_MIN_HAYZ_HOURS),
     maxHayzHours,
@@ -287,7 +349,8 @@ function splitExceedingHanafi(
   const hayzCutoff = addHours(startDate, effectiveHabitHours);
   let hayzDayCount = 0;
   for (const d of bleedingDays) {
-    const asHayz = d.getTime() < hayzCutoff.getTime() && hayzDayCount < maxHayzDays;
+    const asHayz =
+      d.getTime() < hayzCutoff.getTime() && hayzDayCount < maxHayzDays;
     if (asHayz) hayzDayCount++;
     schedule.push({
       date: toDateKey(d),
@@ -300,7 +363,9 @@ function splitExceedingHanafi(
   const hayzHours = effectiveHabitHours;
   const istihadhaHours = Math.max(0, totalHours - hayzHours);
   const kazayaKalanGunler = schedule.filter((s) => s.kind === "ISTIHADHA").length;
-  const habitDaysLabel = hoursToDays(effectiveHabitHours).toFixed(2);
+  const habitDaysLabel = formatDuration(effectiveHabitHours);
+  const qadaStartAt =
+    istihadhaHours > 0 ? hayzCutoff.toISOString() : null;
 
   return {
     hayzHours,
@@ -308,8 +373,10 @@ function splitExceedingHanafi(
     overlapRule: "RASTLAMAYAN",
     daySchedule: schedule,
     kazayaKalanGunler,
-    noteTR: `Rastlamayan kaidesi: önceki âdet günleriyle yeterli çakışma yok (${overlapCount} < 3). Kanama başlangıcından itibaren ${habitDaysLabel} gün (sahih âdet) hayz, kalan ${kazayaKalanGunler} gün istihâze. Kazaya kalan günler: ${kazayaKalanGunler} (tahmini ${kazayaKalanGunler * PRAYERS_PER_DAY} vakit namaz).`,
-    noteEN: `Non-overlap rule: insufficient overlap (${overlapCount} < 3). First ${habitDaysLabel} habit day(s) are hayd; ${kazayaKalanGunler} day(s) istihadha. Makeup days: ${kazayaKalanGunler} (approx. ${kazayaKalanGunler * PRAYERS_PER_DAY} prayers).`,
+    overlapHours,
+    qadaStartAt,
+    noteTR: `Rastlamayan kaidesi: önceki âdetle çakışma ${overlapFmt} (< 3 gün / 72 saat). Kanama başlangıcından ${habitDaysLabel} hayz, kalan ${kazayaKalanGunler} gün istihâze. Kazaya kalan: ${kazayaKalanGunler} gün (≈${kazayaKalanGunler * PRAYERS_PER_DAY} vakit)${qadaStartAt ? `; kaza başlangıcı: ${new Date(qadaStartAt).toLocaleString("tr-TR")}` : ""}.`,
+    noteEN: `Non-overlap rule: overlap ${overlapFmt} (< 3 days / 72h). First ${habitDaysLabel} are hayd; ${kazayaKalanGunler} day(s) istihadha. Makeup days: ${kazayaKalanGunler} (≈${kazayaKalanGunler * PRAYERS_PER_DAY})${qadaStartAt ? `; qada starts: ${new Date(qadaStartAt).toLocaleString("en-GB")}` : ""}.`,
   };
 }
 
@@ -522,6 +589,8 @@ function buildResult(params: {
   daySchedule?: DayScheduleEntry[];
   overlapRule?: OverlapRule | null;
   kazayaKalanGunler?: number;
+  overlapHours?: number;
+  qadaStartAt?: string | null;
 }): CalculationResult {
   const {
     status,
@@ -537,6 +606,8 @@ function buildResult(params: {
     daySchedule,
     overlapRule,
     kazayaKalanGunler,
+    overlapHours,
+    qadaStartAt,
   } = params;
 
   const hayzDays = hoursToDays(hayzHours);
@@ -573,6 +644,8 @@ function buildResult(params: {
     daySchedule,
     overlapRule: overlapRule ?? null,
     kazayaKalanGunler,
+    overlapHours,
+    qadaStartAt: qadaStartAt ?? null,
     ...copy,
   };
 }
@@ -671,6 +744,8 @@ function calculateHanafi(
     daySchedule: split.daySchedule,
     overlapRule: split.overlapRule,
     kazayaKalanGunler: split.kazayaKalanGunler,
+    overlapHours: split.overlapHours,
+    qadaStartAt: split.qadaStartAt,
   });
 }
 

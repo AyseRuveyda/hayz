@@ -422,6 +422,7 @@ export function CalculatorForm() {
       kazayaKalanGunler:
         result.kazayaKalanGunler ??
         Math.ceil(result.istihadhaDays),
+      overlapHours: result.overlapHours,
     });
   }, [
     result,

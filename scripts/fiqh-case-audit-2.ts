@@ -7,7 +7,7 @@ import {
   evaluateCycleWithHabit,
 } from "../src/lib/fiqh-engine";
 import { buildComparisonChart } from "../src/lib/comparison-chart";
-import type { CalculationResult } from "../types/fiqh";
+import type { CalculationResult } from "../src/types/fiqh";
 
 function fmtHours(hours: number): string {
   const totalMin = Math.round(hours * 60);
@@ -211,7 +211,7 @@ function report(v: Verdict) {
     `Ana kan 19 May→1 Haz = ${fmtHours(mainBleed)} (${(mainBleed / 24).toFixed(2)}g)`,
     `Ana yol: ${calcMain.status}/${calcMain.overlapRule} hayz=${calcMain.hayzDays.toFixed(2)}g isti=${calcMain.istihadhaDays.toFixed(2)}g kaza=${calcMain.kazayaKalanGunler}`,
     `Birleşik 16 Nis→1 Haz: ${calcMerged.status}/${calcMerged.overlapRule} hayz=${calcMerged.hayzDays.toFixed(2)}g isti=${calcMerged.istihadhaDays.toFixed(2)}g`,
-    `Beklenen «2g 23s rastlaşma»: motor ≥3 takvim-günü eşiği kullanır; saat-bazlı 2g23s çıktısı yok.`,
+    `Ana çakışma (saat): ${calcMain.overlapHours != null ? fmtHours(calcMain.overlapHours) : "—"} · kaza başlangıcı: ${calcMain.qadaStartAt ?? "—"}`,
   ];
 
   // Ana kan ~13.1 gün > 10 → MIXED beklenir
@@ -221,16 +221,22 @@ function report(v: Verdict) {
   if (mainBleed > 240 && !calcMain.overlapRule) {
     resultMismatches.push("10+ için rastlayan/rastlamayan kuralı yok");
   }
+  if (mainBleed > 240 && calcMain.overlapHours == null) {
+    resultMismatches.push("10+ için overlapHours yok");
+  }
+  if (mainBleed > 240 && !calcMain.qadaStartAt) {
+    resultMismatches.push("10+ için qadaStartAt yok");
+  }
   // El yazısı 2g23s < 3g eşiği → RASTLAMAYAN beklenen motor davranışı
   if (calcMain.overlapRule === "RASTLAYAN") {
     notes.push(
-      "Motor RASTLAYAN seçti (takvim çakışması ≥3). El yazısı 2g23s ise eşik altı kalırdı."
+      "Motor RASTLAYAN seçti (çakışma ≥72s). El yazısı 2g23s ise eşik altı kalırdı."
+    );
+  } else if (calcMain.overlapHours != null) {
+    notes.push(
+      `Rastlamayan: çakışma ${fmtHours(calcMain.overlapHours)} (<72s); defter ~2g23s ile karşılaştırılabilir.`
     );
   }
-  // Beklenen net rastlaşma saati motor üretmiyor
-  notes.push(
-    "Saat hassas «2g 23s rastlaşma» değeri engine API’sinde yok; takvim-günü / habit-saat ayrımı var."
-  );
 
   const tableOk = table.ok && (mainBleed <= 240 || table.hayzRows + table.istiRows > 0);
   const tableMismatches = [...table.issues];
@@ -292,7 +298,7 @@ function report(v: Verdict) {
   const notes: string[] = [
     `tuhur=${fmtHours(tuhurH)}, bleed=${fmtHours(bleedH)}`,
     `${calc.status}/${calc.overlapRule} hayz=${calc.hayzDays.toFixed(2)}g isti=${calc.istihadhaDays.toFixed(2)}g`,
-    `Beklenen 2g23s rastlayan + kesikli çizgi hizası; motor overlapRule=${calc.overlapRule}, hizalamaSütun=${table.chartAlign}`,
+    `çakışma=${calc.overlapHours != null ? fmtHours(calc.overlapHours) : "—"} · qadaStartAt=${calc.qadaStartAt ?? "—"} · hizalama=${table.chartAlign}`,
     "12/16/18 Nis S.K–T.K kesitleri tek aralıkta birleştirildi (segment API yok).",
   ];
 
@@ -442,13 +448,12 @@ function report(v: Verdict) {
     bleedingHours: bleedH,
   });
 
-  // Beklenen kaza başlangıcı 1 Ağustos 15:36 — motor bunu ayrı alan olarak üretmiyor
   const resultMismatches: string[] = [];
   const notes: string[] = [
     `bleed=${fmtHours(bleedH)}, tuhur=${fmtHours(tuhurH)}`,
     `${calc.status}/${calc.overlapRule} hayz=${calc.hayzDays.toFixed(2)} isti=${calc.istihadhaDays.toFixed(2)} kazaGün=${calc.kazayaKalanGunler} qada=${calc.qadaPrayersCount}`,
     `nextEarliestHayzDate=${calc.nextEarliestHayzDate}`,
-    "Beklenen «1 Ağustos 15:36 kaza başlangıcı» için özel timestamp alanı yok; kaza gün sayısı + qada vakti var.",
+    `çakışma=${calc.overlapHours != null ? fmtHours(calc.overlapHours) : "—"} · qadaStartAt=${calc.qadaStartAt ?? "—"}`,
   ];
 
   if (bleedH > 240 && calc.status !== "MIXED") {
@@ -457,12 +462,19 @@ function report(v: Verdict) {
   if ((calc.kazayaKalanGunler ?? 0) <= 0 && calc.qadaPrayersCount <= 0) {
     resultMismatches.push("Kaza üretilmeli");
   }
+  if (bleedH > 240 && !calc.qadaStartAt) {
+    resultMismatches.push("qadaStartAt üretilmeli");
+  }
 
-  // Soft fail note: exact 1 Aug 15:36
-  const hasExactQadaStart = false;
-  if (!hasExactQadaStart) {
+  // Soft note: notebook exact 1 Aug 15:36 vs computed timestamp
+  if (calc.qadaStartAt) {
+    const q = new Date(calc.qadaStartAt);
+    const expectedQ = p(2025, 8, 1, 15, 36);
+    const deltaH = Math.abs(q.getTime() - expectedQ.getTime()) / 3_600_000;
     notes.push(
-      "SONUÇ sapması (kısmi): saat-bazlı kaza başlangıç timestamp’i (1 Ağu 15:36) hesaplanmıyor."
+      deltaH < 1
+        ? `Kaza başlangıcı defterle uyumlu (~1 Ağu 15:36): ${q.toLocaleString("tr-TR")}`
+        : `Kaza başlangıcı motor: ${q.toLocaleString("tr-TR")} (defter 1 Ağu 15:36; Δ≈${fmtHours(deltaH)} — DOM/saat varsayımlarına bağlı)`
     );
   }
 
@@ -475,7 +487,7 @@ function report(v: Verdict) {
       "Habit saat hassas düşüm; 1 Ağustos 15:36 kaza başlangıcı",
     ],
     actual: [
-      `${calc.status}/${calc.overlapRule} kazaGün=${calc.kazayaKalanGunler} qada=${calc.qadaPrayersCount}`,
+      `${calc.status}/${calc.overlapRule} kazaGün=${calc.kazayaKalanGunler} qada=${calc.qadaPrayersCount} qadaStart=${calc.qadaStartAt ?? "—"}`,
       `tablo H=${table.hayzRows} I=${table.istiRows} hizalama=${table.chartAlign}`,
     ],
     resultMismatches,
@@ -543,7 +555,7 @@ function report(v: Verdict) {
     `Dönem2 T: ${fmtHours(actualT)} (beklenen ${fmtHours(expectedT)})`,
     `Dönem2 K: ${fmtHours(actualK)} (beklenen ${fmtHours(expectedK)})`,
     `${calc2.status}/${calc2.overlapRule} hayz=${calc2.hayzDays.toFixed(2)}g isti=${calc2.istihadhaDays.toFixed(2)}g`,
-    `Beklenen rastlaşma 8g 21s 2dk — motor saat-bazlı rastlaşma süresi üretmiyor (takvim günü / habit saat).`,
+    `çakışma=${calc2.overlapHours != null ? fmtHours(calc2.overlapHours) : "—"} · qadaStartAt=${calc2.qadaStartAt ?? "—"}`,
   ];
 
   if (Math.abs(actualT - expectedT) > 1) {
@@ -554,10 +566,18 @@ function report(v: Verdict) {
   if (actualK > 240 && calc2.status !== "MIXED") {
     resultMismatches.push("12g+ kanama MIXED olmalı");
   }
-  // Soft: 8g21s2dk exact overlap hours
-  notes.push(
-    `Motor hayz süresi ${fmtHours(calc2.hayzDays * 24)}; «8g 21s 2dk rastlaşma» ile birebir alan yok.`
-  );
+  if (actualK > 240 && calc2.overlapHours == null) {
+    resultMismatches.push("overlapHours yok");
+  }
+  if (calc2.overlapHours != null) {
+    const expectedOverlap = 8 * 24 + 21 + 2 / 60;
+    const delta = Math.abs(calc2.overlapHours - expectedOverlap);
+    notes.push(
+      delta < 2
+        ? `Rastleşme motor≈defter: ${fmtHours(calc2.overlapHours)} (~8g 21s 2dk)`
+        : `Rastleşme motor: ${fmtHours(calc2.overlapHours)} (defter 8g 21s 2dk; Δ≈${fmtHours(delta)})`
+    );
+  }
 
   report({
     id: 5,
