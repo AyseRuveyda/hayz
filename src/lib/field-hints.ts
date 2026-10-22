@@ -34,12 +34,12 @@ const hints = {
     en: "Enter when your last valid (sahih) hayd bleeding started. Used for the overlap / non-overlap rule.",
   },
   prevHayzEnd: {
-    tr: "En son sahih hayzın bittiği tarih ve saati girin. Genelde bir sonraki temizlik başlangıcı ile aynıdır.",
-    en: "Enter when your last valid hayd ended. Often the same moment as the next purity start.",
+    tr: "Son sahih ayda hayz sayılan kanamanın bittiği tarih ve saat. Temizlik başlangıcından ayrıdır; bu kutuyu değiştirmek diğerini değiştirmez.",
+    en: "When counted hayd bleeding of the last valid month ended. Independent of purity start; changing this field does not change the other.",
   },
   prevPurityStart: {
-    tr: "Son sahih temizliğin başladığı an (hayz bitişi). Temizlik süresi buradan yeni kanama başlangıcına kadar ölçülür.",
-    en: "When last valid purity began (end of hayd). Purity length is measured from here to the new bleed start.",
+    tr: "Son sahih ayın kendi temizliğinin başladığı tarih ve saat. Hayz bitişinden ayrıdır. Temizlik süresi buradan mevcut kanama başlangıcına kadar ölçülür.",
+    en: "When that last valid month’s own purity began. Independent of hayd end. Purity length is measured from here to the current bleed start.",
   },
   contactEmail: {
     tr: "Size dönüş yapabileceğimiz e-posta adresiniz. Mesajınız destek ekibine bu adresle birlikte iletilir.",

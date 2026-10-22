@@ -104,7 +104,7 @@ export function CalculatorForm() {
     useState<DateTimeParts>(defaultPrevHayzStart);
   const [prevHayzEndParts, setPrevHayzEndParts] =
     useState<DateTimeParts>(defaultPurityStart);
-  /** Son sahih ay temizlik başlangıcı (bitiş değil — bitiş = kanama başlangıcı). */
+  /** Son sahih ayın kendi temizlik başlangıcı (hayz bitişinden bağımsız). */
   const [prevTuhurStartParts, setPrevTuhurStartParts] =
     useState<DateTimeParts>(defaultPurityStart);
 
@@ -173,12 +173,6 @@ export function CalculatorForm() {
     startParts,
   ]);
 
-  // Ana temizlik başlangıcı ↔ son sahih hayz bitişi / temizlik başlangıcı
-  useEffect(() => {
-    setPrevHayzEndParts(purityStartParts);
-    setPrevTuhurStartParts(purityStartParts);
-  }, [purityStartParts]);
-
   const computedHayzHours = hoursBetweenParts(prevHayzStartParts, prevHayzEndParts);
   const computedTuhurHours = hoursBetweenParts(prevTuhurStartParts, startParts);
   const currentTuhurHours = hoursBetweenParts(purityStartParts, startParts);
@@ -225,6 +219,11 @@ export function CalculatorForm() {
       const purityStartIso = dateTimePartsToIso(purityStartParts);
       const startIso = dateTimePartsToIso(startParts);
       const endIso = dateTimePartsToIso(endParts);
+      const useSahihMonthFields = hanafiExceedsTenDays || showHabitAccordion;
+      // Rastlaşma: önceki hayz bitişi. Sahih temizlik başlangıcı ayrı alandır.
+      const previousHayzEndIso = useSahihMonthFields
+        ? dateTimePartsToIso(prevHayzEndParts)
+        : purityStartIso;
 
       const next = calculateFiqhStatus({
         startDate: startIso,
@@ -235,7 +234,7 @@ export function CalculatorForm() {
         malikiMaxDays: malikiControlsEnabled ? malikiMaxDays : undefined,
         isContinuousBleeding,
         isFirstPeriod: isFirstPeriod || undefined,
-        previousPurityStartDate: purityStartIso,
+        previousPurityStartDate: previousHayzEndIso,
       });
       setResult(next);
 
@@ -253,9 +252,11 @@ export function CalculatorForm() {
       const cycleMadhhab: "Hanafi" | "Maliki" = madhhab === "MALIKI" ? "Maliki" : "Hanafi";
       const profile = getGuestProfile();
       const lastValidHabit =
-        profile.habitHayzDays > 0 && profile.habitPurityDays > 0
-          ? { hayzHours: profile.habitHayzDays * 24, tuhurHours: profile.habitPurityDays * 24 }
-          : undefined;
+        useSahihMonthFields && computedHayzHours > 0 && computedTuhurHours > 0
+          ? { hayzHours: computedHayzHours, tuhurHours: computedTuhurHours }
+          : profile.habitHayzDays > 0 && profile.habitPurityDays > 0
+            ? { hayzHours: profile.habitHayzDays * 24, tuhurHours: profile.habitPurityDays * 24 }
+            : undefined;
 
       const cycleEval = evaluateCycleWithHabit({
         bleedingStart: bleedingStartDate,
@@ -596,8 +597,8 @@ export function CalculatorForm() {
                   </p>
                   <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
                     {locale === "tr"
-                      ? "Son sahih hayz ile temizlik başlangıcını girin. Temizlik süresi, temizlik başlangıcından kanama başlangıcına kadar hesaplanır (ayrı bitiş sorulmaz)."
-                      : "Enter last valid hayd and purity start. Purity length runs from purity start to bleeding start (no separate end field)."}
+                      ? "Son sahih hayz bitişi, o ayın hayz sayılan kanamasının sonudur. Son sahih temizlik başlangıcı ise o sahih ayın kendi temizliğinin başıdır; iki alan birbirini değiştirmez. Temizlik süresi, temizlik başlangıcından mevcut kanama başlangıcına kadardır."
+                      : "Last valid hayd end is when counted hayd bleeding stopped. Last valid purity start is that sahih month’s own purity; the two fields are independent. Purity length runs from purity start to the current bleed start."}
                   </p>
                 </div>
               </div>
@@ -623,11 +624,7 @@ export function CalculatorForm() {
                       : "Last Valid Hayd End"
                   }
                   value={prevHayzEndParts}
-                  onChange={(v) => {
-                    setPrevHayzEndParts(v);
-                    setPrevTuhurStartParts(v);
-                    setPurityStartParts(v);
-                  }}
+                  onChange={setPrevHayzEndParts}
                   timeHint={timeHint}
                   info={fieldHint("prevHayzEnd", locale)}
                   infoLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}
@@ -640,11 +637,7 @@ export function CalculatorForm() {
                       : "Last Valid Purity Start"
                   }
                   value={prevTuhurStartParts}
-                  onChange={(v) => {
-                    setPrevTuhurStartParts(v);
-                    setPurityStartParts(v);
-                    setPrevHayzEndParts(v);
-                  }}
+                  onChange={setPrevTuhurStartParts}
                   timeHint={timeHint}
                   info={fieldHint("prevPurityStart", locale)}
                   infoLabel={locale === "tr" ? "Alan bilgisi" : "Field info"}
