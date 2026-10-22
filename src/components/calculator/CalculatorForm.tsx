@@ -156,8 +156,8 @@ export function CalculatorForm() {
   useEffect(() => {
     if (!(hanafiExceedsTenDays || showHabitAccordion)) return;
     const hayzH = hoursBetweenParts(prevHayzStartParts, prevHayzEndParts);
-    // Sahih temizlik: temizlik başlangıcı → kanama başlangıcı (bitiş ayrıca sorulmaz)
-    const tuhurH = hoursBetweenParts(prevTuhurStartParts, startParts);
+    // Sahih temizlik: o ayın temizlik başlangıcı → hayz başlangıcı
+    const tuhurH = hoursBetweenParts(prevTuhurStartParts, prevHayzStartParts);
     if (hayzH > 0) {
       setHabitHayzDays(Math.max(1, Math.round((hayzH / 24) * 100) / 100));
     }
@@ -170,11 +170,10 @@ export function CalculatorForm() {
     prevHayzStartParts,
     prevHayzEndParts,
     prevTuhurStartParts,
-    startParts,
   ]);
 
   const computedHayzHours = hoursBetweenParts(prevHayzStartParts, prevHayzEndParts);
-  const computedTuhurHours = hoursBetweenParts(prevTuhurStartParts, startParts);
+  const computedTuhurHours = hoursBetweenParts(prevTuhurStartParts, prevHayzStartParts);
   const currentTuhurHours = hoursBetweenParts(purityStartParts, startParts);
   const bleedingHoursLive = hoursBetweenParts(startParts, endParts);
 
@@ -597,8 +596,8 @@ export function CalculatorForm() {
                   </p>
                   <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-300">
                     {locale === "tr"
-                      ? "Son sahih hayz bitişi, o ayın hayz sayılan kanamasının sonudur. Son sahih temizlik başlangıcı ise o sahih ayın kendi temizliğinin başıdır; iki alan birbirini değiştirmez. Temizlik süresi, temizlik başlangıcından mevcut kanama başlangıcına kadardır."
-                      : "Last valid hayd end is when counted hayd bleeding stopped. Last valid purity start is that sahih month’s own purity; the two fields are independent. Purity length runs from purity start to the current bleed start."}
+                      ? "Son sahih temizlik, o ayın temizlik başlangıcından hayz başlangıcına kadardır. Cetvelde ilk kan bu sürenin ardından başlar. Hayz bitişi ise hayz sayılan günün sonudur; alanlar birbirini değiştirmez."
+                      : "Last valid purity runs from that month’s purity start to its hayd start. The chart places the first blood after that span. Hayd end is when counted hayd stopped; the fields stay independent."}
                   </p>
                 </div>
               </div>
@@ -655,8 +654,8 @@ export function CalculatorForm() {
                     {formatDurationHint(computedTuhurHours, locale)}
                     <span className="text-amber-700/80 dark:text-amber-200/70">
                       {locale === "tr"
-                        ? " (başlangıç → kanama başlangıcı)"
-                        : " (start → bleeding start)"}
+                        ? " (temizlik başlangıcı → hayz başlangıcı)"
+                        : " (purity start → hayd start)"}
                     </span>
                   </p>
                   <p>

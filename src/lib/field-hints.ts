@@ -38,8 +38,8 @@ const hints = {
     en: "When counted hayd bleeding of the last valid month ended. Independent of purity start; changing this field does not change the other.",
   },
   prevPurityStart: {
-    tr: "Son sahih ayın kendi temizliğinin başladığı tarih ve saat. Hayz bitişinden ayrıdır. Temizlik süresi buradan mevcut kanama başlangıcına kadar ölçülür.",
-    en: "When that last valid month’s own purity began. Independent of hayd end. Purity length is measured from here to the current bleed start.",
+    tr: "Son sahih ayın kendi temizliğinin başladığı tarih ve saat. Hayz bitişinden ayrıdır. Sahih temizlik süresi, buradan o ayın hayz başlangıcına kadar ölçülür.",
+    en: "When that last valid month’s own purity began. Independent of hayd end. Valid purity length is measured from here to that month’s hayd start.",
   },
   contactEmail: {
     tr: "Size dönüş yapabileceğimiz e-posta adresiniz. Mesajınız destek ekibine bu adresle birlikte iletilir.",
